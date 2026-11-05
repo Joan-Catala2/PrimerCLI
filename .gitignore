@@ -1,0 +1,8 @@
+__pycache__/
+*.pyc
+Organizado/
+descargas/
+*.egg-info/
+build/
+dist/
+.venv/
