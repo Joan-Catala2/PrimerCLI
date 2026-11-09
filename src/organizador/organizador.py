@@ -36,6 +36,7 @@ def organizar(origen, salida, simular=False):
 
     organizados = []
     revision = []
+    movimientos = []
 
     for archivo in sorted(origen.iterdir()):
         # Solo archivos del primer nivel: las subcarpetas se ignoran.
@@ -58,9 +59,22 @@ def organizar(origen, salida, simular=False):
             destino_dir.mkdir(parents=True, exist_ok=True)
             move(str(archivo), str(destino))
 
+        movimientos.append(
+            {
+                "nombre": archivo.name,
+                "asignatura": asignatura,
+                "tema": tema,
+                "destino": str(destino),
+            }
+        )
+
         if asignatura == REVISION or tema == REVISION:
             revision.append(archivo.name)
         else:
             organizados.append((archivo.name, asignatura, tema))
 
-    return {"organizados": organizados, "revision": revision}
+    return {
+        "organizados": organizados,
+        "revision": revision,
+        "movimientos": movimientos,
+    }

@@ -1,13 +1,44 @@
 """Punto de entrada de la CLI `organizador`."""
 
 import argparse
+import json
 import sys
+from datetime import datetime
 from pathlib import Path
 
 from .organizador import organizar
 from .reglas import REVISION
 
 CARPETA_SUGERIDA = "descargas"
+ARCHIVO_LOG = "organizador.log.json"
+
+
+def _guardar_log(origen, salida, resumen):
+    """Sobrescribe el log con el resumen de la ultima ejecucion."""
+    datos = {
+        "fecha": datetime.now().isoformat(timespec="seconds"),
+        "origen": str(origen),
+        "salida": str(salida),
+        "movimientos": resumen["movimientos"],
+    }
+    with open(ARCHIVO_LOG, "w", encoding="utf-8") as archivo:
+        json.dump(datos, archivo, indent=2, ensure_ascii=False)
+
+
+def _revisar(salida):
+    """Lista los archivos pendientes dentro de <salida>/_revision."""
+    carpeta = salida / REVISION
+    if not carpeta.is_dir():
+        print("No existe la carpeta de revisión: {}".format(carpeta))
+        return 0
+
+    archivos = sorted(p for p in carpeta.iterdir() if p.is_file())
+    for archivo in archivos:
+        print(archivo.name)
+
+    print()
+    print("Archivos a revisar: {}".format(len(archivos)))
+    return 0
 
 
 def main(argv=None):
@@ -41,7 +72,19 @@ def main(argv=None):
         help="muestra qué haría sin mover ningún archivo",
     )
 
+    revisar = sub.add_parser(
+        "revisar", help="lista los archivos pendientes de revisar"
+    )
+    revisar.add_argument(
+        "--salida",
+        default="Organizado",
+        help="carpeta de destino (por defecto: %(default)s)",
+    )
+
     args = parser.parse_args(argv)
+
+    if args.accion == "revisar":
+        return _revisar(Path(args.salida).resolve())
 
     if args.accion != "ejecutar":
         parser.print_help()
@@ -55,6 +98,9 @@ def main(argv=None):
     except (NotADirectoryError, OSError) as error:
         print("Error: {}".format(error), file=sys.stderr)
         return 1
+
+    if not args.simular:
+        _guardar_log(origen, salida, resumen)
 
     etiqueta = "[SIM]" if args.simular else "[OK]"
 
