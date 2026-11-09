@@ -6,11 +6,10 @@ import sys
 from datetime import datetime
 from pathlib import Path
 
-from .organizador import organizar
+from .organizador import NOMBRE_LOG, organizar
 from .reglas import REVISION
 
 CARPETA_SUGERIDA = "descargas"
-ARCHIVO_LOG = "organizador.log.json"
 
 
 def _guardar_log(origen, salida, resumen):
@@ -20,8 +19,9 @@ def _guardar_log(origen, salida, resumen):
         "origen": str(origen),
         "salida": str(salida),
         "movimientos": resumen["movimientos"],
+        "errores": resumen["errores"],
     }
-    with open(ARCHIVO_LOG, "w", encoding="utf-8") as archivo:
+    with open(NOMBRE_LOG, "w", encoding="utf-8") as archivo:
         json.dump(datos, archivo, indent=2, ensure_ascii=False)
 
 
@@ -95,23 +95,29 @@ def main(argv=None):
 
     try:
         resumen = organizar(origen, salida, simular=args.simular)
-    except (NotADirectoryError, OSError) as error:
+    except (NotADirectoryError, ValueError, OSError) as error:
         print("Error: {}".format(error), file=sys.stderr)
         return 1
 
     if not args.simular:
-        _guardar_log(origen, salida, resumen)
+        try:
+            _guardar_log(origen, salida, resumen)
+        except OSError as error:
+            print(
+                "Aviso: no se pudo escribir el log: {}".format(error),
+                file=sys.stderr,
+            )
 
     etiqueta = "[SIM]" if args.simular else "[OK]"
 
     if not args.seco:
-        for nombre, asignatura, tema in resumen["organizados"]:
-            if tema:
-                print("{} {} -> {}/{}".format(etiqueta, nombre, asignatura, tema))
-            else:
-                print("{} {} -> {}".format(etiqueta, nombre, asignatura))
-        for nombre in resumen["revision"]:
-            print("[?] {} -> {}/".format(nombre, REVISION))
+        for movimiento in resumen["movimientos"]:
+            relativo = Path(movimiento["destino"]).relative_to(salida)
+            marca = "[?]" if movimiento["asignatura"] == REVISION else etiqueta
+            print("{} {} -> {}".format(marca, movimiento["nombre"], relativo))
+
+    for error in resumen["errores"]:
+        print("[!] {} -> {}".format(error["nombre"], error["error"]), file=sys.stderr)
 
     total = len(resumen["organizados"]) + len(resumen["revision"])
     print()
@@ -119,6 +125,7 @@ def main(argv=None):
     print("  Archivos procesados: {}".format(total))
     print("  Organizados:         {}".format(len(resumen["organizados"])))
     print("  A revisar:           {}".format(len(resumen["revision"])))
+    print("  Errores:             {}".format(len(resumen["errores"])))
     print("  Destino:             {}".format(salida))
     if args.simular:
         print("  Modo:                simulación (no se ha movido nada)")

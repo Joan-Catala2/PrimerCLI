@@ -108,7 +108,8 @@ def normalizar(texto):
 
 def _contiene(nombre, alias):
     alias = normalizar(alias)
-    return re.search(r"(?:^|\s|/)" + re.escape(alias), nombre) is not None
+    patron = r"(?:^|\s|/)" + re.escape(alias) + r"(?=\s|$|/)"
+    return re.search(patron, nombre) is not None
 
 
 def clasificar(nombre_archivo):
