@@ -33,12 +33,13 @@ PYTHONPATH=src python -m organizador ejecutar descargas
 ## Uso
 
 ```bash
-organizador ejecutar [origen] [--salida Organizado] [--seco]
+organizador ejecutar [origen] [--salida Organizado] [--seco] [--simular]
 ```
 
 - `origen`: carpeta con los archivos a organizar (por defecto `./descargas`).
 - `--salida`: carpeta de destino (por defecto `./Organizado`).
 - `--seco`: solo muestra el resumen final, sin detalle por archivo.
+- `--simular`: muestra qué haría sin mover ningún archivo.
 
 Ejemplo:
 
@@ -81,9 +82,9 @@ Resumen
 | `Programacion_java_tema_3.pdf`          | `Programacion/Java`           |
 | `SistemasInformaticos_redes.pdf`        | `SistemasInformaticos/Redes`  |
 | `EntornosDeDesarrollo_git.pdf`          | `EntornosDeDesarrollo/Git`    |
-| `ProyectoIntermodular_apuntes.pdf`      | `ProyectoIntermodular`        |
+| `FOL_nomina.pdf`                        | `FOL/Nomina`                  |
 | `english phrasal verbs unit 4.pdf`      | `Ingles/PhrasalVerbs`         |
-| `IPO_usabilidad.pdf`                    | `IPO/Usabilidad`              |
+| `IPE_curriculo.pdf`                     | `IPE/Curriculo`               |
 | `LlenguatgeDeMarques_html.pdf`          | `LlenguatgeDeMarques/HTML`    |
 | `apuntes_scan_03.pdf`                   | `_revision`                   |
 
@@ -108,6 +109,7 @@ mkdir -p descargas
 touch "descargas/BaseDeDatos_Tema_SQL_apuntes.pdf" \
       "descargas/Programacion java tema 3.pdf" \
       "descargas/apuntes_scan_03.pdf"
+PYTHONPATH=src python -m organizador ejecutar descargas --simular
 PYTHONPATH=src python -m organizador ejecutar descargas
 ```
 

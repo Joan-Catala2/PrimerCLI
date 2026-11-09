@@ -20,14 +20,16 @@ def _destino_disponible(destino):
         n += 1
 
 
-def organizar(origen, destino_base):
+def organizar(origen, salida, simular=False):
     """Mueve cada archivo de `origen` a su carpeta clasificada.
+
+    Si `simular` es True no se mueve nada: solo se calcula el destino.
 
     Devuelve un dict con el resumen:
       {"organizados": [(archivo, asignatura, tema)], "revision": [archivo]}
     """
     origen = Path(origen)
-    destino_base = Path(destino_base)
+    salida = Path(salida)
 
     if not origen.is_dir():
         raise NotADirectoryError("No existe la carpeta de origen: {}".format(origen))
@@ -36,6 +38,7 @@ def organizar(origen, destino_base):
     revision = []
 
     for archivo in sorted(origen.iterdir()):
+        # Solo archivos del primer nivel: las subcarpetas se ignoran.
         if not archivo.is_file():
             continue
 
@@ -45,13 +48,15 @@ def organizar(origen, destino_base):
         else:
             asignatura, tema = resultado
 
-        destino_dir = destino_base / asignatura
+        destino_dir = salida / asignatura
         if tema:
             destino_dir = destino_dir / tema
-        destino_dir.mkdir(parents=True, exist_ok=True)
 
         destino = _destino_disponible(destino_dir / archivo.name)
-        move(str(archivo), str(destino))
+
+        if not simular:
+            destino_dir.mkdir(parents=True, exist_ok=True)
+            move(str(archivo), str(destino))
 
         if asignatura == REVISION or tema == REVISION:
             revision.append(archivo.name)

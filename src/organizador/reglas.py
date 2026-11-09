@@ -22,6 +22,16 @@ class Regla:
 
 REGLAS = (
     Regla(
+        "Programacion",
+        ("programacion", "programacio", "programming", "java", "python", "codigo", "algoritmo"),
+        (
+            ("Java", ("java",)),
+            ("Python", ("python",)),
+            ("Algoritmos", ("algoritmo", "algoritmos", "pseudocodigo")),
+            ("EstructurasDeDatos", ("estructura de datos", "arrays", "listas")),
+        ),
+    ),
+    Regla(
         "BaseDeDatos",
         ("base de datos", "bases de datos", "base de dades", "bases de dades", "basededatos", "basededades", "bd", "bbdd", "sql"),
         (
@@ -40,27 +50,21 @@ REGLAS = (
         ),
     ),
     Regla(
-        "Programacion",
-        ("programacion", "programacio", "programming", "java", "python", "codigo", "algoritmo"),
-        (
-            ("Java", ("java",)),
-            ("Python", ("python",)),
-            ("Algoritmos", ("algoritmo", "algoritmos", "pseudocodigo")),
-            ("EstructurasDeDatos", ("estructura de datos", "arrays", "listas")),
-        ),
-    ),
-    Regla(
-        "ProyectoIntermodular",
-        ("proyecto intermodular", "projecte intermodular", "proyectointermodular", "projecteintermodular", "intermodular", "proyecto", "projecte"),
-        (),
-    ),
-    Regla(
         "EntornosDeDesarrollo",
-        ("entornos de desarrollo", "entorno de desarrollo", "entorns de desenvolupament", "entornosdedesarrollo", "entornsdedesenvolupament", "git", "ide", "depuracion"),
+        ("entornos de desarrollo", "entorno de desarrollo", "entorns de desenvolupament", "entornosdedesarrollo", "entornsdedesenvolupament", "git", "depuracion"),
         (
             ("Git", ("git", "github", "versionado")),
             ("Testing", ("test", "testing", "junit", "pruebas")),
             ("Refactorizacion", ("refactor", "refactorizacion")),
+        ),
+    ),
+    Regla(
+        "LlenguatgeDeMarques",
+        ("llenguatge de marques", "lenguaje de marcas", "llenguatgedemarques", "lenguajedemarcas", "marcas", "html", "css", "xml"),
+        (
+            ("HTML", ("html",)),
+            ("CSS", ("css",)),
+            ("XML", ("xml",)),
         ),
     ),
     Regla(
@@ -73,20 +77,21 @@ REGLAS = (
         ),
     ),
     Regla(
-        "IPO",
-        ("ipo", "interfaces persona ordenador", "interaccion persona ordenador", "usabilidad"),
+        "FOL",
+        ("fol", "formacion y orientacion laboral", "orientacion laboral"),
         (
-            ("Usabilidad", ("usabilidad", "usability")),
-            ("Interfaces", ("interfaz", "interfaces", "prototipo", "wireframe")),
+            ("PrevencionRiesgos", ("prevencion", "riesgos laborales")),
+            ("DerechoLaboral", ("derecho laboral", "contrato", "convenio")),
+            ("Nomina", ("nomina", "salario")),
         ),
     ),
     Regla(
-        "LlenguatgeDeMarques",
-        ("llenguatge de marques", "lenguaje de marcas", "llenguatgedemarques", "lenguajedemarcas", "marcas", "html", "css", "xml"),
+        "IPE",
+        ("ipe", "itinerario personal para la empleabilidad", "empleabilidad"),
         (
-            ("HTML", ("html",)),
-            ("CSS", ("css",)),
-            ("XML", ("xml",)),
+            ("Curriculo", ("curriculo", "cv")),
+            ("Entrevista", ("entrevista",)),
+            ("Empleabilidad", ("empleabilidad", "itinerario")),
         ),
     ),
 )

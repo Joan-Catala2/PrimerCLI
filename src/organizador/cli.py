@@ -35,6 +35,11 @@ def main(argv=None):
         action="store_true",
         help="no muestra detalle de cada archivo, solo el resumen",
     )
+    ejecutar.add_argument(
+        "--simular",
+        action="store_true",
+        help="muestra qué haría sin mover ningún archivo",
+    )
 
     args = parser.parse_args(argv)
 
@@ -46,17 +51,19 @@ def main(argv=None):
     salida = Path(args.salida).resolve()
 
     try:
-        resumen = organizar(origen, salida)
+        resumen = organizar(origen, salida, simular=args.simular)
     except (NotADirectoryError, OSError) as error:
         print("Error: {}".format(error), file=sys.stderr)
         return 1
 
+    etiqueta = "[SIM]" if args.simular else "[OK]"
+
     if not args.seco:
         for nombre, asignatura, tema in resumen["organizados"]:
             if tema:
-                print("[OK] {} -> {}/{}".format(nombre, asignatura, tema))
+                print("{} {} -> {}/{}".format(etiqueta, nombre, asignatura, tema))
             else:
-                print("[OK] {} -> {}".format(nombre, asignatura))
+                print("{} {} -> {}".format(etiqueta, nombre, asignatura))
         for nombre in resumen["revision"]:
             print("[?] {} -> {}/".format(nombre, REVISION))
 
@@ -67,6 +74,8 @@ def main(argv=None):
     print("  Organizados:         {}".format(len(resumen["organizados"])))
     print("  A revisar:           {}".format(len(resumen["revision"])))
     print("  Destino:             {}".format(salida))
+    if args.simular:
+        print("  Modo:                simulación (no se ha movido nada)")
     return 0
 
 
