@@ -1,0 +1,156 @@
+[
+  {
+    "asignatura": "Programacion",
+    "aliases": [
+      "programacion",
+      "programacio",
+      "programming",
+      "java",
+      "python",
+      "codigo",
+      "algoritmo"
+    ],
+    "temas": [
+      { "tema": "Java", "aliases": ["java"] },
+      { "tema": "Python", "aliases": ["python"] },
+      {
+        "tema": "Algoritmos",
+        "aliases": ["algoritmo", "algoritmos", "pseudocodigo"]
+      },
+      {
+        "tema": "EstructurasDeDatos",
+        "aliases": ["estructura de datos", "arrays", "listas"]
+      }
+    ]
+  },
+  {
+    "asignatura": "BaseDeDatos",
+    "aliases": [
+      "base de datos",
+      "bases de datos",
+      "base de dades",
+      "bases de dades",
+      "basededatos",
+      "basededades",
+      "bd",
+      "bbdd",
+      "sql"
+    ],
+    "temas": [
+      { "tema": "SQL", "aliases": ["sql", "consulta", "consultas"] },
+      {
+        "tema": "ModeloEntidadRelacion",
+        "aliases": ["entidad relacion", "modelo relacional", "er"]
+      },
+      {
+        "tema": "Normalizacion",
+        "aliases": ["normalizacion", "normalitzacio"]
+      }
+    ]
+  },
+  {
+    "asignatura": "SistemasInformaticos",
+    "aliases": [
+      "sistemas informaticos",
+      "sistema informatico",
+      "sistemes informatics",
+      "sistema informatic",
+      "sistemasinformaticos",
+      "sistemesinformatics",
+      "hardware",
+      "redes"
+    ],
+    "temas": [
+      {
+        "tema": "Hardware",
+        "aliases": ["hardware", "ordenador", "equipo"]
+      },
+      { "tema": "Redes", "aliases": ["redes", "red", "ip", "tcp"] },
+      {
+        "tema": "SistemasOperativos",
+        "aliases": ["sistema operativo", "sistema operatiu", "linux", "windows"]
+      }
+    ]
+  },
+  {
+    "asignatura": "EntornosDeDesarrollo",
+    "aliases": [
+      "entornos de desarrollo",
+      "entorno de desarrollo",
+      "entorns de desenvolupament",
+      "entornosdedesarrollo",
+      "entornsdedesenvolupament",
+      "git",
+      "depuracion"
+    ],
+    "temas": [
+      { "tema": "Git", "aliases": ["git", "github", "versionado"] },
+      {
+        "tema": "Testing",
+        "aliases": ["test", "testing", "junit", "pruebas"]
+      },
+      {
+        "tema": "Refactorizacion",
+        "aliases": ["refactor", "refactorizacion"]
+      }
+    ]
+  },
+  {
+    "asignatura": "LlenguatgeDeMarques",
+    "aliases": [
+      "llenguatge de marques",
+      "lenguaje de marcas",
+      "llenguatgedemarques",
+      "lenguajedemarcas",
+      "marcas",
+      "html",
+      "css",
+      "xml"
+    ],
+    "temas": [
+      { "tema": "HTML", "aliases": ["html"] },
+      { "tema": "CSS", "aliases": ["css"] },
+      { "tema": "XML", "aliases": ["xml"] }
+    ]
+  },
+  {
+    "asignatura": "Ingles",
+    "aliases": ["ingles", "angles", "english", "phrasal"],
+    "temas": [
+      {
+        "tema": "PhrasalVerbs",
+        "aliases": ["phrasal", "verb", "verbs"]
+      },
+      { "tema": "Vocabulario", "aliases": ["vocabulary", "vocabulario"] },
+      { "tema": "Gramatica", "aliases": ["grammar", "gramatica"] }
+    ]
+  },
+  {
+    "asignatura": "FOL",
+    "aliases": ["fol", "formacion y orientacion laboral", "orientacion laboral"],
+    "temas": [
+      {
+        "tema": "PrevencionRiesgos",
+        "aliases": ["prevencion", "riesgos laborales"]
+      },
+      {
+        "tema": "DerechoLaboral",
+        "aliases": ["derecho laboral", "contrato", "convenio"]
+      },
+      { "tema": "Nomina", "aliases": ["nomina", "salario"] }
+    ]
+  },
+  {
+    "asignatura": "IPE",
+    "aliases": [
+      "ipe",
+      "itinerario personal para la empleabilidad",
+      "empleabilidad"
+    ],
+    "temas": [
+      { "tema": "Curriculo", "aliases": ["curriculo", "cv"] },
+      { "tema": "Entrevista", "aliases": ["entrevista"] },
+      { "tema": "Empleabilidad", "aliases": ["empleabilidad", "itinerario"] }
+    ]
+  }
+]

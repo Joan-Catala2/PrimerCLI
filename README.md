@@ -66,7 +66,7 @@ Resumen
 1. Normaliza el nombre del archivo (minúsculas, sin tildes, `_`/`-`/`.`
    como separadores).
 2. Busca palabras clave de **asignatura** (reglas en
-   `src/organizador/reglas.py`).
+   `src/organizador/reglas.json`).
 3. Si encuentra además palabras clave de **tema**, lo mueve a
    `Organizado/Asignatura/Tema`; si solo detecta la asignatura, a
    `Organizado/Asignatura`.
@@ -90,17 +90,21 @@ Resumen
 
 ## Añadir asignaturas o temas
 
-Edita `src/organizador/reglas.py` y añade una entrada a `REGLAS`:
+Edita `src/organizador/reglas.json` y añade un objeto a la lista:
 
-```python
-Regla(
-    "Digitalizacion",                       # asignatura (nombre de carpeta)
-    ("digitalizacion", "digitalitzacio"),   # palabras clave de asignatura
-    (
-        ("Ofimatica", ("ofimatica",)),      # (tema, (palabras clave...))
-    ),
-),
+```json
+{
+  "asignatura": "Digitalizacion",
+  "aliases": ["digitalizacion", "digitalitzacio"],
+  "temas": [
+    { "tema": "Ofimatica", "aliases": ["ofimatica"] }
+  ]
+}
 ```
+
+El orden importa: la primera regla que coincide gana. `reglas.py` valida el
+JSON al arrancar y muestra un error claro si falta algún campo o hay
+asignaturas duplicadas.
 
 ## Pruebas rápidas
 
@@ -111,6 +115,13 @@ touch "descargas/BaseDeDatos_Tema_SQL_apuntes.pdf" \
       "descargas/apuntes_scan_03.pdf"
 PYTHONPATH=src python -m organizador ejecutar descargas --simular
 PYTHONPATH=src python -m organizador ejecutar descargas
+```
+
+## Tests
+
+```bash
+pip install -e ".[dev]"
+pytest
 ```
 
 ## Límites de la v1

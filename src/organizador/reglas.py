@@ -1,16 +1,17 @@
-"""Reglas de clasificacion por nombre de archivo.
+"""Carga y validacion de las reglas de clasificacion (reglas.json).
 
-Cada asignatura tiene palabras clave y, opcionalmente, temas con sus
-propias palabras clave. La coincidencia se hace sobre el nombre del
-archivo normalizado (minusculas, sin tildes, separadores convertidos en
-espacios).
+Las asignaturas, palabras clave y temas viven en `reglas.json`. Este modulo
+solo se encarga de leerlas, validarlas y clasificar nombres de archivo.
 """
 
 from dataclasses import dataclass
+import json
+from pathlib import Path
 import re
 import unicodedata
 
 REVISION = "_revision"
+ARCHIVO_REGLAS = "reglas.json"
 
 
 @dataclass(frozen=True)
@@ -20,81 +21,82 @@ class Regla:
     temas: tuple  # ((tema, (alias, ...)), ...)
 
 
-REGLAS = (
-    Regla(
-        "Programacion",
-        ("programacion", "programacio", "programming", "java", "python", "codigo", "algoritmo"),
-        (
-            ("Java", ("java",)),
-            ("Python", ("python",)),
-            ("Algoritmos", ("algoritmo", "algoritmos", "pseudocodigo")),
-            ("EstructurasDeDatos", ("estructura de datos", "arrays", "listas")),
-        ),
-    ),
-    Regla(
-        "BaseDeDatos",
-        ("base de datos", "bases de datos", "base de dades", "bases de dades", "basededatos", "basededades", "bd", "bbdd", "sql"),
-        (
-            ("SQL", ("sql", "consulta", "consultas")),
-            ("ModeloEntidadRelacion", ("entidad relacion", "modelo relacional", "er")),
-            ("Normalizacion", ("normalizacion", "normalitzacio")),
-        ),
-    ),
-    Regla(
-        "SistemasInformaticos",
-        ("sistemas informaticos", "sistema informatico", "sistemes informatics", "sistema informatic", "sistemasinformaticos", "sistemesinformatics", "hardware", "redes"),
-        (
-            ("Hardware", ("hardware", "ordenador", "equipo")),
-            ("Redes", ("redes", "red", "ip", "tcp")),
-            ("SistemasOperativos", ("sistema operativo", "sistema operatiu", "linux", "windows")),
-        ),
-    ),
-    Regla(
-        "EntornosDeDesarrollo",
-        ("entornos de desarrollo", "entorno de desarrollo", "entorns de desenvolupament", "entornosdedesarrollo", "entornsdedesenvolupament", "git", "depuracion"),
-        (
-            ("Git", ("git", "github", "versionado")),
-            ("Testing", ("test", "testing", "junit", "pruebas")),
-            ("Refactorizacion", ("refactor", "refactorizacion")),
-        ),
-    ),
-    Regla(
-        "LlenguatgeDeMarques",
-        ("llenguatge de marques", "lenguaje de marcas", "llenguatgedemarques", "lenguajedemarcas", "marcas", "html", "css", "xml"),
-        (
-            ("HTML", ("html",)),
-            ("CSS", ("css",)),
-            ("XML", ("xml",)),
-        ),
-    ),
-    Regla(
-        "Ingles",
-        ("ingles", "angles", "english", "phrasal"),
-        (
-            ("PhrasalVerbs", ("phrasal", "verb", "verbs")),
-            ("Vocabulario", ("vocabulary", "vocabulario")),
-            ("Gramatica", ("grammar", "gramatica")),
-        ),
-    ),
-    Regla(
-        "FOL",
-        ("fol", "formacion y orientacion laboral", "orientacion laboral"),
-        (
-            ("PrevencionRiesgos", ("prevencion", "riesgos laborales")),
-            ("DerechoLaboral", ("derecho laboral", "contrato", "convenio")),
-            ("Nomina", ("nomina", "salario")),
-        ),
-    ),
-    Regla(
-        "IPE",
-        ("ipe", "itinerario personal para la empleabilidad", "empleabilidad"),
-        (
-            ("Curriculo", ("curriculo", "cv")),
-            ("Entrevista", ("entrevista",)),
-            ("Empleabilidad", ("empleabilidad", "itinerario")),
-        ),
-    ),
-)
+def _error(ruta, indice, mensaje):
+    return ValueError("Regla {} en {}: {}".format(indice + 1, ruta, mensaje))
+
+
+def _lista_textos(valor, campo, ruta, indice):
+    """Valida una lista de textos no vacios y la devuelve como tupla."""
+    if not isinstance(valor, list) or not valor:
+        raise _error(ruta, indice, "'{}' debe ser una lista no vacia".format(campo))
+    textos = []
+    for item in valor:
+        if not isinstance(item, str) or not item.strip():
+            raise _error(
+                ruta, indice, "'{}' solo puede contener textos no vacios".format(campo)
+            )
+        textos.append(item.strip())
+    return tuple(textos)
+
+
+def _cargar_regla(datos, ruta, indice):
+    """Valida un objeto de regla y lo convierte en Regla."""
+    if not isinstance(datos, dict):
+        raise _error(ruta, indice, "debe ser un objeto JSON")
+
+    asignatura = datos.get("asignatura")
+    if not isinstance(asignatura, str) or not asignatura.strip():
+        raise _error(ruta, indice, "'asignatura' debe ser un texto no vacio")
+
+    aliases = _lista_textos(datos.get("aliases"), "aliases", ruta, indice)
+
+    temas_datos = datos.get("temas", [])
+    if not isinstance(temas_datos, list):
+        raise _error(ruta, indice, "'temas' debe ser una lista")
+
+    temas = []
+    for tema_datos in temas_datos:
+        if not isinstance(tema_datos, dict):
+            raise _error(ruta, indice, "cada tema debe ser un objeto JSON")
+        tema = tema_datos.get("tema")
+        if not isinstance(tema, str) or not tema.strip():
+            raise _error(ruta, indice, "'tema' debe ser un texto no vacio")
+        temas.append(
+            (
+                tema.strip(),
+                _lista_textos(tema_datos.get("aliases"), "aliases", ruta, indice),
+            )
+        )
+
+    return Regla(asignatura.strip(), aliases, tuple(temas))
+
+
+def cargar_reglas(ruta=None):
+    """Carga y valida `reglas.json`. Devuelve una tupla de Regla."""
+    ruta = Path(ruta) if ruta is not None else Path(__file__).with_name(ARCHIVO_REGLAS)
+
+    with open(ruta, encoding="utf-8") as archivo:
+        try:
+            datos = json.load(archivo)
+        except json.JSONDecodeError as error:
+            raise ValueError("JSON invalido en {}: {}".format(ruta, error)) from error
+
+    if not isinstance(datos, list) or not datos:
+        raise ValueError("{} debe contener una lista no vacia de reglas".format(ruta))
+
+    reglas = tuple(_cargar_regla(item, ruta, i) for i, item in enumerate(datos))
+
+    nombres = [regla.asignatura for regla in reglas]
+    duplicadas = sorted({nombre for nombre in nombres if nombres.count(nombre) > 1})
+    if duplicadas:
+        raise ValueError(
+            "Asignaturas duplicadas en {}: {}".format(ruta, ", ".join(duplicadas))
+        )
+
+    return reglas
+
+
+REGLAS = cargar_reglas()
 
 
 def normalizar(texto):

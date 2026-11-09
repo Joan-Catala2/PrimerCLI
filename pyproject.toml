@@ -13,5 +13,14 @@ license = { text = "MIT" }
 [project.scripts]
 organizador = "organizador.cli:main"
 
+[project.optional-dependencies]
+dev = ["pytest>=7"]
+
 [tool.setuptools.packages.find]
 where = ["src"]
+
+[tool.setuptools.package-data]
+organizador = ["reglas.json"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
