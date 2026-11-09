@@ -120,6 +120,8 @@ def test_deshacer_devuelve_archivos_al_origen(tmp_path):
         {"nombre": "FOL_nomina.pdf", "destino": str(origen / "FOL_nomina.pdf")}
     ]
     assert resultado["errores"] == []
+    assert salida.exists()
+    assert list(salida.iterdir()) == []
 
 
 def test_deshacer_no_sobrescribe(tmp_path):

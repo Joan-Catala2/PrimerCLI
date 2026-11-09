@@ -6,13 +6,14 @@ import sys
 from datetime import datetime
 from pathlib import Path
 
-from .organizador import NOMBRE_LOG, deshacer, mover_archivo, organizar
+from . import __version__
+from .organizador import NOMBRE_LOG, deshacer, limpiar_vacias, mover_archivo, organizar
 from .reglas import REGLAS, REVISION
 
 CARPETA_SUGERIDA = "descargas"
 
 
-def _guardar_log(origen, salida, resumen):
+def _guardar_log(origen, salida, resumen, ruta):
     """Sobrescribe el log con el resumen de la ultima ejecucion."""
     datos = {
         "fecha": datetime.now().isoformat(timespec="seconds"),
@@ -21,7 +22,9 @@ def _guardar_log(origen, salida, resumen):
         "movimientos": resumen["movimientos"],
         "errores": resumen["errores"],
     }
-    with open(NOMBRE_LOG, "w", encoding="utf-8") as archivo:
+    ruta = Path(ruta)
+    ruta.parent.mkdir(parents=True, exist_ok=True)
+    with open(ruta, "w", encoding="utf-8") as archivo:
         json.dump(datos, archivo, indent=2, ensure_ascii=False)
 
 
@@ -64,19 +67,31 @@ def _revisar(salida, interactivo=False):
         movidos += 1
         print("Movido a {}".format(destino.relative_to(salida)))
 
+    if movidos:
+        limpiar_vacias(salida)
+
     print()
     print("Archivos movidos: {}".format(movidos))
     print("Pendientes:       {}".format(len(archivos) - movidos))
     return 0
 
 
-def _deshacer():
+def _listar_reglas():
+    """Muestra las asignaturas y temas disponibles."""
+    for regla in REGLAS:
+        print(regla.asignatura)
+        for tema, _ in regla.temas:
+            print("  - {}".format(tema))
+    return 0
+
+
+def _deshacer(ruta):
     """Revierte los movimientos guardados en el ultimo log."""
     try:
-        with open(NOMBRE_LOG, encoding="utf-8") as archivo:
+        with open(ruta, encoding="utf-8") as archivo:
             registro = json.load(archivo)
     except FileNotFoundError:
-        print("No hay log para deshacer: {}".format(NOMBRE_LOG))
+        print("No hay log para deshacer: {}".format(ruta))
         return 0
     except json.JSONDecodeError as error:
         print("Error: log inválido: {}".format(error), file=sys.stderr)
@@ -98,7 +113,7 @@ def _deshacer():
     print("  Errores:             {}".format(len(resumen["errores"])))
 
     if not resumen["errores"]:
-        Path(NOMBRE_LOG).unlink(missing_ok=True)
+        Path(ruta).unlink(missing_ok=True)
     return 0
 
 
@@ -107,6 +122,11 @@ def main(argv=None):
         prog="organizador",
         description="Organiza archivos descargados por asignatura y tema "
         "usando solo el nombre del archivo.",
+    )
+    parser.add_argument(
+        "--version",
+        action="version",
+        version="organizador {}".format(__version__),
     )
     sub = parser.add_subparsers(dest="accion")
 
@@ -132,6 +152,11 @@ def main(argv=None):
         action="store_true",
         help="muestra qué haría sin mover ningún archivo",
     )
+    ejecutar.add_argument(
+        "--log",
+        default=NOMBRE_LOG,
+        help="archivo de log (por defecto: %(default)s)",
+    )
 
     revisar = sub.add_parser(
         "revisar", help="lista los archivos pendientes de revisar"
@@ -147,15 +172,27 @@ def main(argv=None):
         help="pregunta asignatura y tema para recolocar cada archivo",
     )
 
-    sub.add_parser("deshacer", help="revierte los movimientos del ultimo log")
+    deshacer_parser = sub.add_parser(
+        "deshacer", help="revierte los movimientos del ultimo log"
+    )
+    deshacer_parser.add_argument(
+        "--log",
+        default=NOMBRE_LOG,
+        help="archivo de log (por defecto: %(default)s)",
+    )
+
+    sub.add_parser("reglas", help="lista asignaturas y temas disponibles")
 
     args = parser.parse_args(argv)
+
+    if args.accion == "reglas":
+        return _listar_reglas()
 
     if args.accion == "revisar":
         return _revisar(Path(args.salida).resolve(), args.interactivo)
 
     if args.accion == "deshacer":
-        return _deshacer()
+        return _deshacer(Path(args.log))
 
     if args.accion != "ejecutar":
         parser.print_help()
@@ -172,7 +209,7 @@ def main(argv=None):
 
     if not args.simular:
         try:
-            _guardar_log(origen, salida, resumen)
+            _guardar_log(origen, salida, resumen, Path(args.log))
         except OSError as error:
             print(
                 "Aviso: no se pudo escribir el log: {}".format(error),

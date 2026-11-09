@@ -33,19 +33,24 @@ PYTHONPATH=src python -m organizador ejecutar descargas
 ## Uso
 
 ```bash
-organizador ejecutar [origen] [--salida Organizado] [--seco] [--simular]
+organizador ejecutar [origen] [--salida Organizado] [--seco] [--simular] [--log ruta.json]
 organizador revisar [--salida Organizado] [--interactivo]
-organizador deshacer
+organizador deshacer [--log ruta.json]
+organizador reglas
+organizador --version
 ```
 
 - `origen`: carpeta con los archivos a organizar (por defecto `./descargas`).
 - `--salida`: carpeta de destino (por defecto `./Organizado`).
 - `--seco`: solo muestra el resumen final, sin detalle por archivo.
 - `--simular`: muestra qué haría sin mover ningún archivo.
+- `--log`: archivo de log a usar (por defecto `./organizador.log.json`).
 - `revisar`: lista los archivos de `Organizado/_revision`.
 - `revisar --interactivo`: pregunta asignatura y tema para recolocar cada archivo.
 - `deshacer`: devuelve al origen los archivos movidos en la última ejecución
-  usando `organizador.log.json`.
+  usando el log. También limpia las carpetas vacías.
+- `reglas`: muestra las asignaturas y temas disponibles.
+- `--version`: muestra la versión instalada.
 
 Ejemplo:
 

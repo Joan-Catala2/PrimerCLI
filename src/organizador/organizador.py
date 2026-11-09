@@ -45,6 +45,24 @@ def mover_archivo(archivo, destino_dir):
     return destino
 
 
+def limpiar_vacias(base):
+    """Elimina las carpetas vacias dentro de `base`, sin borrar `base`."""
+    base = Path(base)
+    if not base.is_dir():
+        return
+
+    carpetas = sorted(
+        (ruta for ruta in base.rglob("*") if ruta.is_dir()),
+        key=lambda ruta: len(ruta.parts),
+        reverse=True,
+    )
+    for carpeta in carpetas:
+        try:
+            carpeta.rmdir()
+        except OSError:
+            pass
+
+
 def organizar(origen, salida, simular=False):
     """Mueve cada archivo de `origen` a su carpeta clasificada.
 
@@ -128,6 +146,7 @@ def deshacer(registro):
     errores = []
 
     origen_dato = registro.get("origen") if isinstance(registro, dict) else None
+    salida_dato = registro.get("salida") if isinstance(registro, dict) else None
     if not origen_dato:
         errores.append({"nombre": "", "error": "El log no tiene 'origen'"})
         return {"deshechos": deshechos, "errores": errores}
@@ -153,5 +172,8 @@ def deshacer(registro):
             deshechos.append({"nombre": nombre, "destino": str(destino)})
         except OSError as error:
             errores.append({"nombre": nombre, "error": str(error)})
+
+    if salida_dato:
+        limpiar_vacias(Path(salida_dato))
 
     return {"deshechos": deshechos, "errores": errores}

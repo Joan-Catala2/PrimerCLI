@@ -1,6 +1,8 @@
 import json
 
-from organizador import cli
+import pytest
+
+from organizador import __version__, cli
 
 
 def test_cli_escribe_log(tmp_path, monkeypatch, capsys):
@@ -90,6 +92,7 @@ def test_cli_revisar_interactivo(tmp_path, monkeypatch, capsys):
     assert codigo == 0
     assert (salida / "FOL" / "Nomina" / "raro.pdf").exists()
     assert not archivo.exists()
+    assert not revision.exists()
     assert "Archivos movidos: 1" in capsys.readouterr().out
 
 
@@ -117,3 +120,49 @@ def test_cli_deshacer_sin_log(tmp_path, monkeypatch, capsys):
 
     assert codigo == 0
     assert "No hay log" in capsys.readouterr().out
+
+
+def test_cli_version(capsys):
+    with pytest.raises(SystemExit) as exc:
+        cli.main(["--version"])
+
+    assert exc.value.code == 0
+    assert __version__ in capsys.readouterr().out
+
+
+def test_cli_reglas(capsys):
+    codigo = cli.main(["reglas"])
+
+    assert codigo == 0
+    texto = capsys.readouterr().out
+    assert "Programacion" in texto
+    assert "  - Java" in texto
+    assert "FOL" in texto
+
+
+def test_cli_log_personalizado(tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+    origen = tmp_path / "descargas"
+    origen.mkdir()
+    (origen / "FOL_nomina.pdf").write_text("x", encoding="utf-8")
+    salida = tmp_path / "Organizado"
+    ruta_log = tmp_path / "logs" / "custom.json"
+
+    codigo = cli.main(
+        [
+            "ejecutar",
+            str(origen),
+            "--salida",
+            str(salida),
+            "--log",
+            str(ruta_log),
+        ]
+    )
+
+    assert codigo == 0
+    assert ruta_log.exists()
+    assert not (tmp_path / "organizador.log.json").exists()
+
+    assert cli.main(["deshacer", "--log", str(ruta_log)]) == 0
+    assert (origen / "FOL_nomina.pdf").exists()
+    assert not ruta_log.exists()
