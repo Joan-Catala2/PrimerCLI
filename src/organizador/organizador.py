@@ -35,6 +35,16 @@ def _destino_disponible(destino):
         n += 1
 
 
+def mover_archivo(archivo, destino_dir):
+    """Mueve `archivo` a `destino_dir` sin sobreescribir. Devuelve el destino."""
+    archivo = Path(archivo)
+    destino_dir = Path(destino_dir)
+    destino_dir.mkdir(parents=True, exist_ok=True)
+    destino = _destino_disponible(destino_dir / archivo.name)
+    move(str(archivo), str(destino))
+    return destino
+
+
 def organizar(origen, salida, simular=False):
     """Mueve cada archivo de `origen` a su carpeta clasificada.
 
@@ -107,3 +117,41 @@ def organizar(origen, salida, simular=False):
         "movimientos": movimientos,
         "errores": errores,
     }
+
+
+def deshacer(registro):
+    """Devuelve al origen los archivos indicados en el ultimo log.
+
+    Devuelve {"deshechos": [{nombre, destino}], "errores": [{nombre, error}]}.
+    """
+    deshechos = []
+    errores = []
+
+    origen_dato = registro.get("origen") if isinstance(registro, dict) else None
+    if not origen_dato:
+        errores.append({"nombre": "", "error": "El log no tiene 'origen'"})
+        return {"deshechos": deshechos, "errores": errores}
+
+    origen = Path(origen_dato).resolve()
+    if not origen.is_dir():
+        errores.append(
+            {
+                "nombre": "",
+                "error": "No existe la carpeta de origen: {}".format(origen),
+            }
+        )
+        return {"deshechos": deshechos, "errores": errores}
+
+    for movimiento in registro.get("movimientos", []):
+        nombre = movimiento.get("nombre", "")
+        actual = Path(movimiento.get("destino", ""))
+        try:
+            if not actual.is_file():
+                raise FileNotFoundError("No existe el archivo: {}".format(actual))
+            destino = _destino_disponible(origen / nombre)
+            move(str(actual), str(destino))
+            deshechos.append({"nombre": nombre, "destino": str(destino)})
+        except OSError as error:
+            errores.append({"nombre": nombre, "error": str(error)})
+
+    return {"deshechos": deshechos, "errores": errores}

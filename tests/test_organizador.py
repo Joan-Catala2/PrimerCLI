@@ -1,6 +1,6 @@
 import pytest
 
-from organizador.organizador import organizar
+from organizador.organizador import deshacer, organizar
 
 
 def _crear_origen(tmp_path):
@@ -99,3 +99,45 @@ def test_salida_dentro_del_origen_falla(tmp_path):
 
     with pytest.raises(ValueError, match="dentro del origen"):
         organizar(origen, origen / "Organizado")
+
+
+def test_deshacer_devuelve_archivos_al_origen(tmp_path):
+    origen = _crear_origen(tmp_path)
+    archivo = origen / "FOL_nomina.pdf"
+    archivo.write_text("x", encoding="utf-8")
+    salida = tmp_path / "Organizado"
+    resumen = organizar(origen, salida)
+    registro = {
+        "origen": str(origen.resolve()),
+        "salida": str(salida.resolve()),
+        "movimientos": resumen["movimientos"],
+    }
+
+    resultado = deshacer(registro)
+
+    assert (origen / "FOL_nomina.pdf").exists()
+    assert resultado["deshechos"] == [
+        {"nombre": "FOL_nomina.pdf", "destino": str(origen / "FOL_nomina.pdf")}
+    ]
+    assert resultado["errores"] == []
+
+
+def test_deshacer_no_sobrescribe(tmp_path):
+    origen = _crear_origen(tmp_path)
+    archivo = origen / "FOL_nomina.pdf"
+    archivo.write_text("original", encoding="utf-8")
+    salida = tmp_path / "Organizado"
+    resumen = organizar(origen, salida)
+
+    (origen / "FOL_nomina.pdf").write_text("nuevo", encoding="utf-8")
+    registro = {
+        "origen": str(origen.resolve()),
+        "salida": str(salida.resolve()),
+        "movimientos": resumen["movimientos"],
+    }
+
+    resultado = deshacer(registro)
+
+    assert (origen / "FOL_nomina.pdf").read_text(encoding="utf-8") == "nuevo"
+    assert (origen / "FOL_nomina-1.pdf").exists()
+    assert resultado["errores"] == []

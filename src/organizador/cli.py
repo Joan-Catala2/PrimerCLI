@@ -6,8 +6,8 @@ import sys
 from datetime import datetime
 from pathlib import Path
 
-from .organizador import NOMBRE_LOG, organizar
-from .reglas import REVISION
+from .organizador import NOMBRE_LOG, deshacer, mover_archivo, organizar
+from .reglas import REGLAS, REVISION
 
 CARPETA_SUGERIDA = "descargas"
 
@@ -25,19 +25,80 @@ def _guardar_log(origen, salida, resumen):
         json.dump(datos, archivo, indent=2, ensure_ascii=False)
 
 
-def _revisar(salida):
-    """Lista los archivos pendientes dentro de <salida>/_revision."""
+def _revisar(salida, interactivo=False):
+    """Lista (y opcionalmente recoloca) los archivos de <salida>/_revision."""
     carpeta = salida / REVISION
     if not carpeta.is_dir():
         print("No existe la carpeta de revisión: {}".format(carpeta))
         return 0
 
     archivos = sorted(p for p in carpeta.iterdir() if p.is_file())
-    for archivo in archivos:
-        print(archivo.name)
+
+    if not interactivo:
+        for archivo in archivos:
+            print(archivo.name)
+        print()
+        print("Archivos a revisar: {}".format(len(archivos)))
+        return 0
+
+    asignaturas = {regla.asignatura for regla in REGLAS}
+    print("Asignaturas disponibles: {}".format(", ".join(sorted(asignaturas))))
+
+    movidos = 0
+    for numero, archivo in enumerate(archivos, start=1):
+        print()
+        print("[{}/{}] {}".format(numero, len(archivos), archivo.name))
+        asignatura = input("Asignatura (Enter para saltar): ").strip()
+        if not asignatura:
+            continue
+        if asignatura not in asignaturas:
+            print("Asignatura no válida, se salta.")
+            continue
+
+        tema = input("Tema (opcional): ").strip()
+        destino_dir = salida / asignatura
+        if tema:
+            destino_dir = destino_dir / tema
+
+        destino = mover_archivo(archivo, destino_dir)
+        movidos += 1
+        print("Movido a {}".format(destino.relative_to(salida)))
 
     print()
-    print("Archivos a revisar: {}".format(len(archivos)))
+    print("Archivos movidos: {}".format(movidos))
+    print("Pendientes:       {}".format(len(archivos) - movidos))
+    return 0
+
+
+def _deshacer():
+    """Revierte los movimientos guardados en el ultimo log."""
+    try:
+        with open(NOMBRE_LOG, encoding="utf-8") as archivo:
+            registro = json.load(archivo)
+    except FileNotFoundError:
+        print("No hay log para deshacer: {}".format(NOMBRE_LOG))
+        return 0
+    except json.JSONDecodeError as error:
+        print("Error: log inválido: {}".format(error), file=sys.stderr)
+        return 1
+
+    if not isinstance(registro, dict):
+        print("Error: el log no tiene el formato esperado.", file=sys.stderr)
+        return 1
+
+    resumen = deshacer(registro)
+    for movimiento in resumen["deshechos"]:
+        print("[UNDO] {} -> {}".format(movimiento["nombre"], movimiento["destino"]))
+    for error in resumen["errores"]:
+        print("[!] {} -> {}".format(error["nombre"], error["error"]), file=sys.stderr)
+
+    print()
+    print("Resumen")
+    print("  Archivos devueltos:  {}".format(len(resumen["deshechos"])))
+    print("  Errores:             {}".format(len(resumen["errores"])))
+
+    if not resumen["errores"]:
+        Path(NOMBRE_LOG).unlink(missing_ok=True)
     return 0
 
 
@@ -80,11 +141,21 @@ def main(argv=None):
         default="Organizado",
         help="carpeta de destino (por defecto: %(default)s)",
     )
+    revisar.add_argument(
+        "--interactivo",
+        action="store_true",
+        help="pregunta asignatura y tema para recolocar cada archivo",
+    )
+
+    sub.add_parser("deshacer", help="revierte los movimientos del ultimo log")
 
     args = parser.parse_args(argv)
 
     if args.accion == "revisar":
-        return _revisar(Path(args.salida).resolve())
+        return _revisar(Path(args.salida).resolve(), args.interactivo)
+
+    if args.accion == "deshacer":
+        return _deshacer()
 
     if args.accion != "ejecutar":
         parser.print_help()

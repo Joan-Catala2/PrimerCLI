@@ -73,3 +73,47 @@ def test_cli_revisar(tmp_path, monkeypatch, capsys):
     assert "a.pdf" in texto
     assert "b.pdf" in texto
     assert "Archivos a revisar: 2" in texto
+
+
+def test_cli_revisar_interactivo(tmp_path, monkeypatch, capsys):
+    monkeypatch.chdir(tmp_path)
+    salida = tmp_path / "Organizado"
+    revision = salida / "_revision"
+    revision.mkdir(parents=True)
+    archivo = revision / "raro.pdf"
+    archivo.write_text("x", encoding="utf-8")
+    respuestas = iter(["FOL", "Nomina"])
+    monkeypatch.setattr("builtins.input", lambda _: next(respuestas))
+
+    codigo = cli.main(["revisar", "--salida", str(salida), "--interactivo"])
+
+    assert codigo == 0
+    assert (salida / "FOL" / "Nomina" / "raro.pdf").exists()
+    assert not archivo.exists()
+    assert "Archivos movidos: 1" in capsys.readouterr().out
+
+
+def test_cli_deshacer(tmp_path, monkeypatch, capsys):
+    monkeypatch.chdir(tmp_path)
+    origen = tmp_path / "descargas"
+    origen.mkdir()
+    (origen / "FOL_nomina.pdf").write_text("x", encoding="utf-8")
+    salida = tmp_path / "Organizado"
+    assert cli.main(["ejecutar", str(origen), "--salida", str(salida)]) == 0
+    assert not (origen / "FOL_nomina.pdf").exists()
+
+    codigo = cli.main(["deshacer"])
+
+    assert codigo == 0
+    assert (origen / "FOL_nomina.pdf").exists()
+    assert not (tmp_path / "organizador.log.json").exists()
+    assert "[UNDO]" in capsys.readouterr().out
+
+
+def test_cli_deshacer_sin_log(tmp_path, monkeypatch, capsys):
+    monkeypatch.chdir(tmp_path)
+
+    codigo = cli.main(["deshacer"])
+
+    assert codigo == 0
+    assert "No hay log" in capsys.readouterr().out
