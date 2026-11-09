@@ -6,11 +6,11 @@ archivo.
 
 ```
 Organizado/
-├── Matematicas/
-│   ├── Derivadas/
-│   └── Integrales/
-├── Historia/
-│   └── EdadModerna/
+├── BaseDeDatos/
+│   ├── SQL/
+│   └── Normalizacion/
+├── Programacion/
+│   └── Java/
 └── _revision/          # lo que no se pudo clasificar
 ```
 
@@ -49,8 +49,8 @@ organizador ejecutar descargas
 Salida:
 
 ```
-[OK] Mates_Tema_Derivadas_apuntes.pdf -> Matematicas/Derivadas
-[OK] Historia apuntes edad moderna.pdf -> Historia/EdadModerna
+[OK] BaseDeDatos_Tema_SQL_apuntes.pdf -> BaseDeDatos/SQL
+[OK] Programacion java tema 3.pdf -> Programacion/Java
 [?] apuntes_scan_03.pdf -> _revision/
 
 Resumen
@@ -76,13 +76,15 @@ Resumen
 
 | Nombre                                  | Destino                       |
 | --------------------------------------- | ----------------------------- |
-| `Mates_Tema_Derivadas_apuntes.pdf`      | `Matematicas/Derivadas`       |
-| `calcul_integral_ejercicios.pdf`        | `Matematicas/Integrales`      |
-| `Historia apuntes edad moderna.pdf`     | `Historia/EdadModerna`        |
-| `tema_revolucion_industrial_Historia.pdf` | `Historia/RevolucionIndustrial` |
-| `Lengua sintaxis ejercicios.docx`       | `Lengua/Sintaxis`             |
+| `BaseDeDatos_Tema_SQL_apuntes.pdf`      | `BaseDeDatos/SQL`             |
+| `base_de_datos_normalizacion.pdf`       | `BaseDeDatos/Normalizacion`   |
+| `Programacion_java_tema_3.pdf`          | `Programacion/Java`           |
+| `SistemasInformaticos_redes.pdf`        | `SistemasInformaticos/Redes`  |
+| `EntornosDeDesarrollo_git.pdf`          | `EntornosDeDesarrollo/Git`    |
+| `ProyectoIntermodular_apuntes.pdf`      | `ProyectoIntermodular`        |
 | `english phrasal verbs unit 4.pdf`      | `Ingles/PhrasalVerbs`         |
-| `Fisica_Tema_Cinematica.pdf`            | `Fisica/Cinematica`           |
+| `IPO_usabilidad.pdf`                    | `IPO/Usabilidad`              |
+| `LlenguatgeDeMarques_html.pdf`          | `LlenguatgeDeMarques/HTML`    |
 | `apuntes_scan_03.pdf`                   | `_revision`                   |
 
 ## Añadir asignaturas o temas
@@ -91,10 +93,10 @@ Edita `src/organizador/reglas.py` y añade una entrada a `REGLAS`:
 
 ```python
 Regla(
-    "Quimica",                              # asignatura (nombre de carpeta)
-    ("quimica", "molecula"),                # palabras clave de asignatura
+    "Digitalizacion",                       # asignatura (nombre de carpeta)
+    ("digitalizacion", "digitalitzacio"),   # palabras clave de asignatura
     (
-        ("Formulacion", ("formulacion",)),  # (tema, (palabras clave...))
+        ("Ofimatica", ("ofimatica",)),      # (tema, (palabras clave...))
     ),
 ),
 ```
@@ -103,8 +105,8 @@ Regla(
 
 ```bash
 mkdir -p descargas
-touch "descargas/Mates_Tema_Derivadas_apuntes.pdf" \
-      "descargas/Historia apuntes edad moderna.pdf" \
+touch "descargas/BaseDeDatos_Tema_SQL_apuntes.pdf" \
+      "descargas/Programacion java tema 3.pdf" \
       "descargas/apuntes_scan_03.pdf"
 PYTHONPATH=src python -m organizador ejecutar descargas
 ```

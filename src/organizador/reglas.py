@@ -22,64 +22,71 @@ class Regla:
 
 REGLAS = (
     Regla(
-        "Matematicas",
-        ("matematicas", "mates", "calcul", "algebra", "derivada", "integral", "funcion"),
+        "BaseDeDatos",
+        ("base de datos", "bases de datos", "base de dades", "bases de dades", "basededatos", "basededades", "bd", "bbdd", "sql"),
         (
-            ("Derivadas", ("derivada", "diferenciacion")),
-            ("Integrales", ("integral",)),
-            ("Funciones", ("funcion", "funciones")),
-            ("Algebra", ("algebra", "matriz", "matrices")),
+            ("SQL", ("sql", "consulta", "consultas")),
+            ("ModeloEntidadRelacion", ("entidad relacion", "modelo relacional", "er")),
+            ("Normalizacion", ("normalizacion", "normalitzacio")),
         ),
     ),
     Regla(
-        "Historia",
-        ("historia", "edadmoderna", "edad media", "revolucion"),
+        "SistemasInformaticos",
+        ("sistemas informaticos", "sistema informatico", "sistemes informatics", "sistema informatic", "sistemasinformaticos", "sistemesinformatics", "hardware", "redes"),
         (
-            ("EdadMedia", ("edad media", "media")),
-            ("EdadModerna", ("edad moderna", "moderna")),
-            ("RevolucionIndustrial", ("revolucion industrial", "industrial")),
+            ("Hardware", ("hardware", "ordenador", "equipo")),
+            ("Redes", ("redes", "red", "ip", "tcp")),
+            ("SistemasOperativos", ("sistema operativo", "sistema operatiu", "linux", "windows")),
         ),
     ),
     Regla(
-        "Lengua",
-        ("lengua", "sintaxis", "morfologia", "literatura", "comentario"),
+        "Programacion",
+        ("programacion", "programacio", "programming", "java", "python", "codigo", "algoritmo"),
         (
-            ("Sintaxis", ("sintaxis", "oracion", "oraciones")),
-            ("Morfologia", ("morfologia", "palabra", "palabras")),
-            ("Literatura", ("literatura", "comentario", "poema")),
+            ("Java", ("java",)),
+            ("Python", ("python",)),
+            ("Algoritmos", ("algoritmo", "algoritmos", "pseudocodigo")),
+            ("EstructurasDeDatos", ("estructura de datos", "arrays", "listas")),
+        ),
+    ),
+    Regla(
+        "ProyectoIntermodular",
+        ("proyecto intermodular", "projecte intermodular", "proyectointermodular", "projecteintermodular", "intermodular", "proyecto", "projecte"),
+        (),
+    ),
+    Regla(
+        "EntornosDeDesarrollo",
+        ("entornos de desarrollo", "entorno de desarrollo", "entorns de desenvolupament", "entornosdedesarrollo", "entornsdedesenvolupament", "git", "ide", "depuracion"),
+        (
+            ("Git", ("git", "github", "versionado")),
+            ("Testing", ("test", "testing", "junit", "pruebas")),
+            ("Refactorizacion", ("refactor", "refactorizacion")),
         ),
     ),
     Regla(
         "Ingles",
-        ("ingles", "english", "phrasal"),
+        ("ingles", "angles", "english", "phrasal"),
         (
             ("PhrasalVerbs", ("phrasal", "verb", "verbs")),
             ("Vocabulario", ("vocabulary", "vocabulario")),
+            ("Gramatica", ("grammar", "gramatica")),
         ),
     ),
     Regla(
-        "Fisica",
-        ("fisica", "cinematica", "cinematic", "newton", "energia"),
+        "IPO",
+        ("ipo", "interfaces persona ordenador", "interaccion persona ordenador", "usabilidad"),
         (
-            ("Cinematica", ("cinematica", "cinematic", "movimiento")),
-            ("Dinamica", ("dinamica", "newton", "fuerza")),
-            ("Energia", ("energia", "energy")),
+            ("Usabilidad", ("usabilidad", "usability")),
+            ("Interfaces", ("interfaz", "interfaces", "prototipo", "wireframe")),
         ),
     ),
     Regla(
-        "Quimica",
-        ("quimica", "molecula", "reaccion", "formula"),
+        "LlenguatgeDeMarques",
+        ("llenguatge de marques", "lenguaje de marcas", "llenguatgedemarques", "lenguajedemarcas", "marcas", "html", "css", "xml"),
         (
-            ("Formulacion", ("formulacion", "formula")),
-            ("Reacciones", ("reaccion", "reacciones")),
-        ),
-    ),
-    Regla(
-        "Biologia",
-        ("biologia", "celula", "genetica", "ecosistema"),
-        (
-            ("Celula", ("celula", "celulas")),
-            ("Genetica", ("genetica", "adn", "dna")),
+            ("HTML", ("html",)),
+            ("CSS", ("css",)),
+            ("XML", ("xml",)),
         ),
     ),
 )
