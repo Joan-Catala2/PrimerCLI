@@ -34,9 +34,13 @@ PYTHONPATH=src python -m organizador ejecutar descargas
 
 ```bash
 organizador ejecutar [origen] [--salida Organizado] [--seco] [--simular]
+                     [--recursivo] [--extension EXT] [--excluir PATRON]
+                     [--desde YYYY-MM-DD] [--confirmar] [--json]
                      [--log ruta.json | --logs-dir carpeta] [--reglas ruta.json]
-organizador revisar [--salida Organizado] [--interactivo] [--reglas ruta.json]
-organizador deshacer [--logs-dir carpeta] [--ultimos N] [--log ruta.json]
+organizador revisar [--salida Organizado] [--interactivo] [--json]
+                    [--reglas ruta.json]
+organizador deshacer [--logs-dir carpeta] [--ultimos N] [--listar]
+                     [--simular] [--json] [--log ruta.json]
 organizador reglas [--reglas ruta.json]
 organizador --version
 ```
@@ -45,16 +49,31 @@ organizador --version
 - `--salida`: carpeta de destino (por defecto `./Organizado`).
 - `--seco`: solo muestra el resumen final, sin detalle por archivo.
 - `--simular`: muestra qué haría sin mover ningún archivo.
+- `--recursivo`: recorre también las subcarpetas del origen (omite carpetas
+  ocultas y el historial de logs).
+- `--extension`: solo procesa esas extensiones (`--extension pdf` o
+  `--extension pdf,docx`; repetible).
+- `--excluir`: no procesa nombres que casen con un patrón glob
+  (`--excluir "*borrador*"`; repetible).
+- `--desde`: solo procesa archivos modificados desde esa fecha
+  (`YYYY-MM-DD`).
+- `--confirmar`: muestra el plan y pide confirmación antes de mover.
+- `--json`: emite el resultado en JSON (sin salida humana), útil para
+  scripts.
 - `--reglas`: fichero de reglas a usar (sustituye a las del paquete).
 - `--log`: guarda un único log en esa ruta.
 - `--logs-dir`: carpeta del historial de logs (por defecto
   `./organizador-logs`). Cada ejecución crea un `<fecha>.json`.
 - `revisar`: lista los archivos de `Organizado/_revision`.
-- `revisar --interactivo`: pregunta asignatura y tema para recolocar cada
-  archivo. Si se cancela la entrada (Ctrl+D/EOF) no se pierde nada.
+- `revisar --interactivo`: sugiere asignatura y tema a partir del nombre;
+  Enter acepta la sugerencia, `-` quita el tema y `q` termina. Si el nombre
+  no existe en las reglas, pregunta si quieres crearlo. Si se cancela la
+  entrada (Ctrl+D/EOF) no se pierde nada.
 - `deshacer`: revierte el último log del historial. Con `--ultimos N`
-  revierte los N más recientes. También limpia las carpetas vacías y
-  devuelve código de error si algún archivo no se puede devolver.
+  revierte los N más recientes. `--listar` muestra el historial sin revertir
+  y `--simular` previsualiza el deshacer sin mover ni borrar logs. También
+  limpia las carpetas vacías y devuelve código de error si algún archivo no
+  se puede devolver.
 - `reglas`: muestra las asignaturas y temas disponibles.
 - `--version`: muestra la versión instalada.
 
@@ -88,6 +107,8 @@ Resumen
   Archivos procesados: 3
   Organizados:         2
   A revisar:           1
+  Errores:             0
+  Filtrados:           0
   Destino:             /ruta/al/proyecto/Organizado
 ```
 
@@ -156,8 +177,22 @@ pip install -e ".[dev]"
 pytest
 ```
 
-## Límites de la v1
+## Calidad
+
+```bash
+ruff check .
+ruff format --check .
+mypy src
+pytest --cov=organizador --cov-report=term-missing
+pre-commit install
+pre-commit run --all-files
+```
+
+La CI ejecuta `ruff`, `mypy` y los tests con cobertura mínima del 85% en
+Python 3.10–3.13.
+
+## Límites
 
 - No lee el contenido de los PDF ni usa OCR: solo el nombre.
 - No hay interfaz gráfica.
-- No mueve subcarpetas (solo archivos del primer nivel).
+- Sin `--recursivo` solo procesa los archivos del primer nivel.

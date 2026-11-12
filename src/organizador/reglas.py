@@ -4,12 +4,12 @@ Las asignaturas, palabras clave y temas viven en `reglas.json`. Este modulo
 solo se encarga de leerlas, validarlas y clasificar nombres de archivo.
 """
 
-from dataclasses import dataclass
 import json
 import os
-from pathlib import Path
 import re
 import unicodedata
+from dataclasses import dataclass
+from pathlib import Path
 
 REVISION = "_revision"
 ARCHIVO_REGLAS = "reglas.json"
@@ -150,7 +150,7 @@ def _partes(nombre_archivo):
 
 def _tokens(nombre_archivo):
     """Como `_partes`, pero ademas separa camelCase ('BaseDeDatos')."""
-    tokens = []
+    tokens: list = []
     for parte in _partes(nombre_archivo):
         tokens.extend(p for p in re.split(r"(?<=[a-z])(?=[A-Z])", parte) if p)
     return tokens
@@ -207,7 +207,7 @@ def clasificar(nombre_archivo, reglas=None):
     def encaja(alias):
         return _coincide(tokens, alias) or _pega(nombre_archivo, alias)
 
-    for regla in (REGLAS if reglas is None else reglas):
+    for regla in REGLAS if reglas is None else reglas:
         if not any(encaja(a) for a in regla.aliases):
             continue
         for tema, temas_aliases in regla.temas:

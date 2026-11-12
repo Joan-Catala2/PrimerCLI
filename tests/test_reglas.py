@@ -87,9 +87,7 @@ def test_cargar_reglas_json_invalido(tmp_path):
 
 def test_cargar_reglas_valida_campos(tmp_path):
     ruta = tmp_path / "reglas.json"
-    ruta.write_text(
-        json.dumps([{"asignatura": "X", "aliases": []}]), encoding="utf-8"
-    )
+    ruta.write_text(json.dumps([{"asignatura": "X", "aliases": []}]), encoding="utf-8")
 
     with pytest.raises(ValueError, match="aliases"):
         cargar_reglas(ruta)

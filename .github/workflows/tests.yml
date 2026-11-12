@@ -5,6 +5,22 @@ on:
   pull_request:
 
 jobs:
+  lint:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Instalar dependencias
+        run: pip install -e ".[dev]"
+      - name: ruff check
+        run: ruff check .
+      - name: ruff format
+        run: ruff format --check .
+      - name: mypy
+        run: mypy src
+
   test:
     runs-on: ubuntu-24.04
     strategy:
@@ -19,4 +35,4 @@ jobs:
       - name: Instalar dependencias
         run: pip install -e ".[dev]"
       - name: Ejecutar tests
-        run: pytest
+        run: pytest --cov=organizador --cov-report=term-missing --cov-fail-under=85

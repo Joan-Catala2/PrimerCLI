@@ -7,3 +7,6 @@ descargas/
 build/
 dist/
 .venv/
+.coverage
+.mypy_cache/
+.ruff_cache/
