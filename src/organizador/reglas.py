@@ -104,25 +104,76 @@ def normalizar(texto):
     texto = unicodedata.normalize("NFKD", texto)
     texto = "".join(c for c in texto if not unicodedata.combining(c))
     texto = texto.lower()
-    texto = re.sub(r"[._\-]+", " ", texto)
+    texto = re.sub(r"[._\-\s]+", " ", texto)
     return re.sub(r"\s+", " ", texto).strip()
 
 
-def _contiene(nombre, alias):
-    alias = normalizar(alias)
-    patron = r"(?:^|\s|/)" + re.escape(alias) + r"(?=\s|$|/)"
-    return re.search(patron, nombre) is not None
+def _partes(nombre_archivo):
+    """Trocea el stem por separadores (_ - . espacios), ya normalizadas."""
+    stem = Path(nombre_archivo).stem
+    return [normalizar(p) for p in re.split(r"[._\-\s]+", stem) if p]
+
+
+def _tokens(nombre_archivo):
+    """Como `_partes`, pero ademas separa camelCase ('BaseDeDatos')."""
+    tokens = []
+    for parte in _partes(nombre_archivo):
+        tokens.extend(p for p in re.split(r"(?<=[a-z])(?=[A-Z])", parte) if p)
+    return tokens
+
+
+def _coincide(tokens, alias):
+    """Coincidencia por palabras: el alias debe aparecer como secuencia de
+    tokens consecutivos. Cubre 'BaseDeDatos_sql' y 'BaseDeDatos_sql'."""
+    objetivo = normalizar(alias).split(" ")
+    n = len(objetivo)
+    for i in range(len(tokens) - n + 1):
+        if tokens[i : i + n] == objetivo:
+            return True
+    return False
+
+
+def _pega(nombre_archivo, alias):
+    """Coincidencia compacta: alias pegado al nombre sin separadores.
+
+    Permite 'trabajosql', 'basededatos' o 'sql_apuntes'. Para no generar
+    falsos positivos ('fol' dentro de 'folder', 'ipe' dentro de 'recipe')
+    se aplican estas reglas:
+      - varias palabras: subcadena si tiene 4+ letras;
+      - una palabra de 4+ letras: al principio o al final;
+      - una palabra de 3 letras: solo al final, tras una vocal y con al
+        menos 3 letras delante ('trabajosql' si, 'digit'/'recipe' no);
+      - 2 letras o menos: nunca (se exige palabra completa).
+    """
+    alias_norm = normalizar(alias)
+    compacto = alias_norm.replace(" ", "")
+    if not compacto:
+        return False
+    texto = "".join(_partes(nombre_archivo))
+    if " " in alias_norm:
+        return len(compacto) >= 4 and compacto in texto
+    if len(compacto) >= 4:
+        return texto.startswith(compacto) or texto.endswith(compacto)
+    if len(compacto) == 3:
+        if not texto.endswith(compacto):
+            return False
+        prefijo = texto[:-3]
+        return len(prefijo) >= 3 and prefijo[-1] in "aeiouy"
+    return False
 
 
 def clasificar(nombre_archivo):
     """Devuelve (asignatura, tema) o None si no se puede clasificar."""
-    nombre = normalizar(nombre_archivo)
+    tokens = _tokens(nombre_archivo)
+
+    def encaja(alias):
+        return _coincide(tokens, alias) or _pega(nombre_archivo, alias)
 
     for regla in REGLAS:
-        if not any(_contiene(nombre, a) for a in regla.aliases):
+        if not any(encaja(a) for a in regla.aliases):
             continue
         for tema, temas_aliases in regla.temas:
-            if any(_contiene(nombre, a) for a in temas_aliases):
+            if any(encaja(a) for a in temas_aliases):
                 return regla.asignatura, tema
         return regla.asignatura, ""
 

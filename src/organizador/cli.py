@@ -13,6 +13,48 @@ from .reglas import REGLAS, REVISION
 CARPETA_SUGERIDA = "descargas"
 
 
+def _resolver_log(ruta, origen, salida):
+    """Devuelve una ruta de log que nunca cae dentro de `origen`.
+
+    Si la ruta pedida (relativa al directorio actual) esta dentro del
+    origen, se recoloca junto a la carpeta de salida para que una nueva
+    pasada no la trate como archivo a organizar.
+    """
+    ruta = Path(ruta)
+    if not ruta.is_absolute():
+        ruta = Path.cwd() / ruta
+    ruta = ruta.resolve()
+
+    origen = Path(origen).resolve()
+    if ruta == origen or origen in ruta.parents:
+        nueva = (Path(salida).resolve().parent / ruta.name).resolve()
+        print(
+            "Aviso: el log se guardara fuera del origen en {}".format(nueva),
+            file=sys.stderr,
+        )
+        return nueva
+    return ruta
+
+
+def _avisar_sobrescritura(ruta):
+    """Avisa si ya existe un log con movimientos que se va a sobrescribir."""
+    ruta = Path(ruta)
+    if not ruta.is_file():
+        return
+    try:
+        with open(ruta, encoding="utf-8") as archivo:
+            datos = json.load(archivo)
+        movimientos = len(datos.get("movimientos", []))
+    except (OSError, json.JSONDecodeError, AttributeError):
+        movimientos = 0
+    if movimientos:
+        print(
+            "Aviso: se sobrescribira el log existente ({} movimientos). "
+            "Usa --log para conservarlo.".format(movimientos),
+            file=sys.stderr,
+        )
+
+
 def _guardar_log(origen, salida, resumen, ruta):
     """Sobrescribe el log con el resumen de la ultima ejecucion."""
     datos = {
@@ -48,17 +90,25 @@ def _revisar(salida, interactivo=False):
     print("Asignaturas disponibles: {}".format(", ".join(sorted(asignaturas))))
 
     movidos = 0
+    cancelado = False
     for numero, archivo in enumerate(archivos, start=1):
         print()
         print("[{}/{}] {}".format(numero, len(archivos), archivo.name))
-        asignatura = input("Asignatura (Enter para saltar): ").strip()
-        if not asignatura:
-            continue
-        if asignatura not in asignaturas:
-            print("Asignatura no válida, se salta.")
-            continue
+        try:
+            asignatura = input("Asignatura (Enter para saltar): ").strip()
+            if not asignatura:
+                continue
+            if asignatura not in asignaturas:
+                print("Asignatura no válida, se salta.")
+                continue
 
-        tema = input("Tema (opcional): ").strip()
+            tema = input("Tema (opcional): ").strip()
+        except EOFError:
+            print()
+            print("Entrada cancelada; se deja el resto en revisión.")
+            cancelado = True
+            break
+
         destino_dir = salida / asignatura
         if tema:
             destino_dir = destino_dir / tema
@@ -73,7 +123,7 @@ def _revisar(salida, interactivo=False):
     print()
     print("Archivos movidos: {}".format(movidos))
     print("Pendientes:       {}".format(len(archivos) - movidos))
-    return 0
+    return 130 if cancelado else 0
 
 
 def _listar_reglas():
@@ -114,7 +164,7 @@ def _deshacer(ruta):
 
     if not resumen["errores"]:
         Path(ruta).unlink(missing_ok=True)
-    return 0
+    return 1 if resumen["errores"] else 0
 
 
 def main(argv=None):
@@ -207,9 +257,11 @@ def main(argv=None):
         print("Error: {}".format(error), file=sys.stderr)
         return 1
 
-    if not args.simular:
+    if not args.simular and (resumen["movimientos"] or resumen["errores"]):
+        ruta_log = _resolver_log(args.log, origen, salida)
+        _avisar_sobrescritura(ruta_log)
         try:
-            _guardar_log(origen, salida, resumen, Path(args.log))
+            _guardar_log(origen, salida, resumen, ruta_log)
         except OSError as error:
             print(
                 "Aviso: no se pudo escribir el log: {}".format(error),

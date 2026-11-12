@@ -166,3 +166,64 @@ def test_cli_log_personalizado(tmp_path, monkeypatch):
     assert cli.main(["deshacer", "--log", str(ruta_log)]) == 0
     assert (origen / "FOL_nomina.pdf").exists()
     assert not ruta_log.exists()
+
+
+def test_cli_log_no_cae_dentro_del_origen(tmp_path, monkeypatch):
+    origen = tmp_path / "descargas"
+    origen.mkdir()
+    monkeypatch.chdir(origen)
+    (origen / "FOL_nomina.pdf").write_text("x", encoding="utf-8")
+    salida = tmp_path / "Organizado"
+
+    codigo = cli.main(["ejecutar", ".", "--salida", str(salida)])
+
+    assert codigo == 0
+    assert not (origen / "organizador.log.json").exists()
+    assert (tmp_path / "organizador.log.json").exists()
+
+
+def test_cli_pasada_vacia_no_pisa_el_log(tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+    origen = tmp_path / "descargas"
+    origen.mkdir()
+    (origen / "FOL_nomina.pdf").write_text("x", encoding="utf-8")
+    salida = tmp_path / "Organizado"
+
+    assert cli.main(["ejecutar", str(origen), "--salida", str(salida)]) == 0
+    assert cli.main(["ejecutar", str(origen), "--salida", str(salida)]) == 0
+
+    log = json.loads((tmp_path / "organizador.log.json").read_text(encoding="utf-8"))
+    assert len(log["movimientos"]) == 1
+
+
+def test_cli_deshacer_con_error_devuelve_1(tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+    origen = tmp_path / "descargas"
+    origen.mkdir()
+    (origen / "FOL_nomina.pdf").write_text("x", encoding="utf-8")
+    salida = tmp_path / "Organizado"
+
+    assert cli.main(["ejecutar", str(origen), "--salida", str(salida)]) == 0
+    (salida / "FOL" / "Nomina" / "FOL_nomina.pdf").unlink()
+
+    assert cli.main(["deshacer"]) == 1
+    assert (tmp_path / "organizador.log.json").exists()
+
+
+def test_cli_revisar_interactivo_eof(tmp_path, monkeypatch, capsys):
+    monkeypatch.chdir(tmp_path)
+    salida = tmp_path / "Organizado"
+    revision = salida / "_revision"
+    revision.mkdir(parents=True)
+    (revision / "raro.pdf").write_text("x", encoding="utf-8")
+
+    def _eof(_):
+        raise EOFError
+
+    monkeypatch.setattr("builtins.input", _eof)
+
+    codigo = cli.main(["revisar", "--salida", str(salida), "--interactivo"])
+
+    assert codigo == 130
+    assert (revision / "raro.pdf").exists()
+    assert "Entrada cancelada" in capsys.readouterr().out

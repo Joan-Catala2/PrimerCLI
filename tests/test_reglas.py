@@ -34,6 +34,23 @@ def test_no_confunde_fol_con_folder():
     assert clasificar("folder_apuntes.pdf") is None
 
 
+@pytest.mark.parametrize(
+    "nombre, esperado",
+    [
+        ("trabajosql.pdf", ("BaseDeDatos", "SQL")),
+        ("contrasql.pdf", ("BaseDeDatos", "SQL")),
+        ("trabajo_de_sql.pdf", ("BaseDeDatos", "SQL")),
+        ("GithubApuntes.pdf", ("EntornosDeDesarrollo", "Git")),
+        ("recipe.pdf", None),
+        ("digit.pdf", None),
+        ("tema4_ip.pdf", None),
+        ("hipotesis_tema2.pdf", None),
+    ],
+)
+def test_matching_compacto_sin_falsos_positivos(nombre, esperado):
+    assert clasificar(nombre) == esperado
+
+
 def test_cargar_reglas_personalizadas(tmp_path):
     ruta = tmp_path / "reglas.json"
     ruta.write_text(

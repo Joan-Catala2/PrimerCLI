@@ -45,12 +45,19 @@ organizador --version
 - `--seco`: solo muestra el resumen final, sin detalle por archivo.
 - `--simular`: muestra qué haría sin mover ningún archivo.
 - `--log`: archivo de log a usar (por defecto `./organizador.log.json`).
+  Si esa ruta cae dentro de la carpeta de origen, el log se guarda junto a
+  la carpeta de salida para que no acabe organizándose.
 - `revisar`: lista los archivos de `Organizado/_revision`.
-- `revisar --interactivo`: pregunta asignatura y tema para recolocar cada archivo.
+- `revisar --interactivo`: pregunta asignatura y tema para recolocar cada
+  archivo. Si se cancela la entrada (Ctrl+D/EOF) no se pierde nada.
 - `deshacer`: devuelve al origen los archivos movidos en la última ejecución
-  usando el log. También limpia las carpetas vacías.
+  usando el log. También limpia las carpetas vacías. Devuelve código de
+  error si algún archivo no se puede devolver.
 - `reglas`: muestra las asignaturas y temas disponibles.
 - `--version`: muestra la versión instalada.
+
+El log solo se escribe cuando la ejecución mueve archivos o registra
+errores, y se avisa si se va a sobrescribir uno con movimientos previos.
 
 Ejemplo:
 
@@ -75,9 +82,11 @@ Resumen
 ## Cómo clasifica
 
 1. Normaliza el nombre del archivo (minúsculas, sin tildes, `_`/`-`/`.`
-   como separadores).
+   como separadores) y separa camelCase (`BaseDeDatos`).
 2. Busca palabras clave de **asignatura** (reglas en
-   `src/organizador/reglas.json`).
+   `src/organizador/reglas.json`). Las palabras cortas (`ip`, `er`, `bd`)
+   deben aparecer completas; las largas también valen pegadas al nombre
+   (`trabajosql`, `GithubApuntes`).
 3. Si encuentra además palabras clave de **tema**, lo mueve a
    `Organizado/Asignatura/Tema`; si solo detecta la asignatura, a
    `Organizado/Asignatura`.
