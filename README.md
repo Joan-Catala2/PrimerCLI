@@ -33,10 +33,11 @@ PYTHONPATH=src python -m organizador ejecutar descargas
 ## Uso
 
 ```bash
-organizador ejecutar [origen] [--salida Organizado] [--seco] [--simular] [--log ruta.json]
-organizador revisar [--salida Organizado] [--interactivo]
-organizador deshacer [--log ruta.json]
-organizador reglas
+organizador ejecutar [origen] [--salida Organizado] [--seco] [--simular]
+                     [--log ruta.json | --logs-dir carpeta] [--reglas ruta.json]
+organizador revisar [--salida Organizado] [--interactivo] [--reglas ruta.json]
+organizador deshacer [--logs-dir carpeta] [--ultimos N] [--log ruta.json]
+organizador reglas [--reglas ruta.json]
 organizador --version
 ```
 
@@ -44,20 +45,31 @@ organizador --version
 - `--salida`: carpeta de destino (por defecto `./Organizado`).
 - `--seco`: solo muestra el resumen final, sin detalle por archivo.
 - `--simular`: muestra qué haría sin mover ningún archivo.
-- `--log`: archivo de log a usar (por defecto `./organizador.log.json`).
-  Si esa ruta cae dentro de la carpeta de origen, el log se guarda junto a
-  la carpeta de salida para que no acabe organizándose.
+- `--reglas`: fichero de reglas a usar (sustituye a las del paquete).
+- `--log`: guarda un único log en esa ruta.
+- `--logs-dir`: carpeta del historial de logs (por defecto
+  `./organizador-logs`). Cada ejecución crea un `<fecha>.json`.
 - `revisar`: lista los archivos de `Organizado/_revision`.
 - `revisar --interactivo`: pregunta asignatura y tema para recolocar cada
   archivo. Si se cancela la entrada (Ctrl+D/EOF) no se pierde nada.
-- `deshacer`: devuelve al origen los archivos movidos en la última ejecución
-  usando el log. También limpia las carpetas vacías. Devuelve código de
-  error si algún archivo no se puede devolver.
+- `deshacer`: revierte el último log del historial. Con `--ultimos N`
+  revierte los N más recientes. También limpia las carpetas vacías y
+  devuelve código de error si algún archivo no se puede devolver.
 - `reglas`: muestra las asignaturas y temas disponibles.
 - `--version`: muestra la versión instalada.
 
 El log solo se escribe cuando la ejecución mueve archivos o registra
-errores, y se avisa si se va a sobrescribir uno con movimientos previos.
+errores. El historial vive en una carpeta, así que no se organiza por error.
+
+### Reglas personalizadas
+
+Puedes añadir o sobrescribir asignaturas sin tocar el paquete creando
+`~/.config/organizador/reglas.json` (o `$XDG_CONFIG_HOME/organizador/reglas.json`)
+con el mismo formato que `src/organizador/reglas.json`. Las reglas del
+usuario tienen prioridad y se fusionan con las del paquete.
+
+Con `--reglas ruta.json` se usan **solo** las reglas de ese fichero, lo que
+resulta útil para probar configuraciones o usar un juego distinto.
 
 Ejemplo:
 

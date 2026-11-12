@@ -7,10 +7,11 @@ from datetime import datetime
 from pathlib import Path
 
 from . import __version__
-from .organizador import NOMBRE_LOG, deshacer, limpiar_vacias, mover_archivo, organizar
-from .reglas import REGLAS, REVISION
+from .organizador import deshacer, limpiar_vacias, mover_archivo, organizar
+from .reglas import REVISION, reglas_efectivas, ruta_reglas_usuario
 
 CARPETA_SUGERIDA = "descargas"
+CARPETA_LOGS = "organizador-logs"
 
 
 def _resolver_log(ruta, origen, salida):
@@ -70,7 +71,29 @@ def _guardar_log(origen, salida, resumen, ruta):
         json.dump(datos, archivo, indent=2, ensure_ascii=False)
 
 
-def _revisar(salida, interactivo=False):
+def _guardar_historial(origen, salida, resumen, carpeta):
+    """Guarda una entrada nueva en el historial de logs y devuelve su ruta."""
+    carpeta = Path(carpeta)
+    carpeta.mkdir(parents=True, exist_ok=True)
+    marca = datetime.now().strftime("%Y%m%d-%H%M%S-%f")
+    ruta = carpeta / "{}.json".format(marca)
+    _guardar_log(origen, salida, resumen, ruta)
+    return ruta
+
+
+def _logs_disponibles(carpeta):
+    """Logs del historial, del mas reciente al mas antiguo."""
+    carpeta = Path(carpeta)
+    if not carpeta.is_dir():
+        return []
+    return sorted(
+        (p for p in carpeta.glob("*.json") if p.is_file()),
+        key=lambda p: p.name,
+        reverse=True,
+    )
+
+
+def _revisar(salida, interactivo=False, reglas=None):
     """Lista (y opcionalmente recoloca) los archivos de <salida>/_revision."""
     carpeta = salida / REVISION
     if not carpeta.is_dir():
@@ -86,7 +109,7 @@ def _revisar(salida, interactivo=False):
         print("Archivos a revisar: {}".format(len(archivos)))
         return 0
 
-    asignaturas = {regla.asignatura for regla in REGLAS}
+    asignaturas = {regla.asignatura for regla in (reglas or ())}
     print("Asignaturas disponibles: {}".format(", ".join(sorted(asignaturas))))
 
     movidos = 0
@@ -126,36 +149,68 @@ def _revisar(salida, interactivo=False):
     return 130 if cancelado else 0
 
 
-def _listar_reglas():
+def _obtener_reglas(ruta):
+    """Carga las reglas efectivas; imprime el error y devuelve None si falla."""
+    try:
+        return reglas_efectivas(ruta)
+    except (OSError, ValueError) as error:
+        print("Error: {}".format(error), file=sys.stderr)
+        return None
+
+
+def _listar_reglas(reglas):
     """Muestra las asignaturas y temas disponibles."""
-    for regla in REGLAS:
+    usuario = ruta_reglas_usuario()
+    if usuario.is_file():
+        print("Reglas del usuario: {}".format(usuario))
+    for regla in reglas:
         print(regla.asignatura)
         for tema, _ in regla.temas:
             print("  - {}".format(tema))
     return 0
 
 
-def _deshacer(ruta):
-    """Revierte los movimientos guardados en el ultimo log."""
+def _deshacer_un_log(ruta):
+    """Carga y revierte un log. Devuelve (estado, resumen).
+
+    estado: "ok", "missing" (no existe) o "error" (log invalido).
+    """
     try:
         with open(ruta, encoding="utf-8") as archivo:
             registro = json.load(archivo)
     except FileNotFoundError:
-        print("No hay log para deshacer: {}".format(ruta))
-        return 0
+        return "missing", None
     except json.JSONDecodeError as error:
-        print("Error: log inválido: {}".format(error), file=sys.stderr)
-        return 1
+        print("Error: log inválido {}: {}".format(ruta, error), file=sys.stderr)
+        return "error", None
 
     if not isinstance(registro, dict):
-        print("Error: el log no tiene el formato esperado.", file=sys.stderr)
-        return 1
+        print(
+            "Error: el log no tiene el formato esperado: {}".format(ruta),
+            file=sys.stderr,
+        )
+        return "error", None
 
-    resumen = deshacer(registro)
+    return "ok", deshacer(registro)
+
+
+def _detalles_deshacer(resumen):
     for movimiento in resumen["deshechos"]:
         print("[UNDO] {} -> {}".format(movimiento["nombre"], movimiento["destino"]))
     for error in resumen["errores"]:
         print("[!] {} -> {}".format(error["nombre"], error["error"]), file=sys.stderr)
+
+
+def _deshacer(ruta):
+    """Revierte los movimientos guardados en un unico log."""
+    estado, resumen = _deshacer_un_log(ruta)
+    if estado == "missing":
+        print("No hay log para deshacer: {}".format(ruta))
+        return 0
+    if estado == "error":
+        return 1
+
+    _detalles_deshacer(resumen)
 
     print()
     print("Resumen")
@@ -165,6 +220,38 @@ def _deshacer(ruta):
     if not resumen["errores"]:
         Path(ruta).unlink(missing_ok=True)
     return 1 if resumen["errores"] else 0
+
+
+def _deshacer_historial(carpeta, ultimos):
+    """Revierte los `ultimos` logs del historial, del mas reciente al mas antiguo."""
+    rutas = _logs_disponibles(carpeta)[:ultimos]
+    if not rutas:
+        print("No hay logs para deshacer en {}".format(carpeta))
+        return 0
+
+    total = 0
+    errores = 0
+    for numero, ruta in enumerate(rutas, start=1):
+        print("[{}/{}] {}".format(numero, len(rutas), ruta.name))
+        estado, resumen = _deshacer_un_log(ruta)
+        if estado == "error":
+            errores += 1
+            continue
+        if estado == "missing":
+            continue
+
+        _detalles_deshacer(resumen)
+        total += len(resumen["deshechos"])
+        errores += len(resumen["errores"])
+        if not resumen["errores"]:
+            ruta.unlink(missing_ok=True)
+
+    print()
+    print("Resumen")
+    print("  Logs procesados:     {}".format(len(rutas)))
+    print("  Archivos devueltos:  {}".format(total))
+    print("  Errores:             {}".format(errores))
+    return 1 if errores else 0
 
 
 def main(argv=None):
@@ -204,8 +291,19 @@ def main(argv=None):
     )
     ejecutar.add_argument(
         "--log",
-        default=NOMBRE_LOG,
-        help="archivo de log (por defecto: %(default)s)",
+        default=None,
+        help="guarda un unico log en esta ruta (por defecto: historial en "
+        "{}/)".format(CARPETA_LOGS),
+    )
+    ejecutar.add_argument(
+        "--logs-dir",
+        default=CARPETA_LOGS,
+        help="carpeta del historial de logs (por defecto: %(default)s)",
+    )
+    ejecutar.add_argument(
+        "--reglas",
+        default=None,
+        help="fichero de reglas a usar (sustituye a las del paquete)",
     )
 
     revisar = sub.add_parser(
@@ -221,47 +319,93 @@ def main(argv=None):
         action="store_true",
         help="pregunta asignatura y tema para recolocar cada archivo",
     )
+    revisar.add_argument(
+        "--reglas",
+        default=None,
+        help="fichero de reglas a usar (sustituye a las del paquete)",
+    )
 
     deshacer_parser = sub.add_parser(
         "deshacer", help="revierte los movimientos del ultimo log"
     )
     deshacer_parser.add_argument(
         "--log",
-        default=NOMBRE_LOG,
-        help="archivo de log (por defecto: %(default)s)",
+        default=None,
+        help="revierte un unico log en esta ruta",
+    )
+    deshacer_parser.add_argument(
+        "--logs-dir",
+        default=CARPETA_LOGS,
+        help="carpeta del historial de logs (por defecto: %(default)s)",
+    )
+    deshacer_parser.add_argument(
+        "--ultimos",
+        type=int,
+        default=1,
+        metavar="N",
+        help="revierte los N logs mas recientes (por defecto: %(default)s)",
     )
 
-    sub.add_parser("reglas", help="lista asignaturas y temas disponibles")
+    reglas_parser = sub.add_parser(
+        "reglas", help="lista asignaturas y temas disponibles"
+    )
+    reglas_parser.add_argument(
+        "--reglas",
+        default=None,
+        help="fichero de reglas a usar (sustituye a las del paquete)",
+    )
 
     args = parser.parse_args(argv)
 
     if args.accion == "reglas":
-        return _listar_reglas()
+        reglas = _obtener_reglas(args.reglas)
+        if reglas is None:
+            return 1
+        return _listar_reglas(reglas)
 
     if args.accion == "revisar":
-        return _revisar(Path(args.salida).resolve(), args.interactivo)
+        reglas = _obtener_reglas(args.reglas)
+        if reglas is None:
+            return 1
+        return _revisar(Path(args.salida).resolve(), args.interactivo, reglas)
 
     if args.accion == "deshacer":
-        return _deshacer(Path(args.log))
+        if args.log is not None:
+            return _deshacer(Path(args.log))
+        if args.ultimos < 1:
+            print("Error: --ultimos debe ser 1 o mas.", file=sys.stderr)
+            return 1
+        return _deshacer_historial(Path(args.logs_dir), args.ultimos)
 
     if args.accion != "ejecutar":
         parser.print_help()
+        return 1
+
+    reglas = _obtener_reglas(args.reglas)
+    if reglas is None:
         return 1
 
     origen = Path(args.origen).resolve()
     salida = Path(args.salida).resolve()
 
     try:
-        resumen = organizar(origen, salida, simular=args.simular)
+        resumen = organizar(origen, salida, simular=args.simular, reglas=reglas)
     except (NotADirectoryError, ValueError, OSError) as error:
         print("Error: {}".format(error), file=sys.stderr)
         return 1
 
+    ruta_log = None
     if not args.simular and (resumen["movimientos"] or resumen["errores"]):
-        ruta_log = _resolver_log(args.log, origen, salida)
-        _avisar_sobrescritura(ruta_log)
+        if args.log is not None:
+            ruta_log = _resolver_log(args.log, origen, salida)
+            _avisar_sobrescritura(ruta_log)
         try:
-            _guardar_log(origen, salida, resumen, ruta_log)
+            if ruta_log is not None:
+                _guardar_log(origen, salida, resumen, ruta_log)
+            else:
+                ruta_log = _guardar_historial(
+                    origen, salida, resumen, args.logs_dir
+                )
         except OSError as error:
             print(
                 "Aviso: no se pudo escribir el log: {}".format(error),
@@ -287,6 +431,8 @@ def main(argv=None):
     print("  A revisar:           {}".format(len(resumen["revision"])))
     print("  Errores:             {}".format(len(resumen["errores"])))
     print("  Destino:             {}".format(salida))
+    if ruta_log is not None:
+        print("  Log:                 {}".format(ruta_log))
     if args.simular:
         print("  Modo:                simulación (no se ha movido nada)")
     return 0

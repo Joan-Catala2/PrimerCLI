@@ -2,7 +2,12 @@ import json
 
 import pytest
 
-from organizador.reglas import cargar_reglas, clasificar
+from organizador.reglas import (
+    cargar_reglas,
+    clasificar,
+    reglas_efectivas,
+    ruta_reglas_usuario,
+)
 
 
 @pytest.mark.parametrize(
@@ -88,3 +93,75 @@ def test_cargar_reglas_valida_campos(tmp_path):
 
     with pytest.raises(ValueError, match="aliases"):
         cargar_reglas(ruta)
+
+
+def _regla_digitalizacion(ruta):
+    ruta.write_text(
+        json.dumps(
+            [
+                {
+                    "asignatura": "Digitalizacion",
+                    "aliases": ["digitalizacion"],
+                    "temas": [{"tema": "Ofimatica", "aliases": ["ofimatica"]}],
+                }
+            ]
+        ),
+        encoding="utf-8",
+    )
+
+
+def test_clasificar_con_reglas_personalizadas(tmp_path):
+    ruta = tmp_path / "reglas.json"
+    _regla_digitalizacion(ruta)
+    reglas = cargar_reglas(ruta)
+
+    assert clasificar("Digitalizacion_ofimatica.pdf", reglas) == (
+        "Digitalizacion",
+        "Ofimatica",
+    )
+    assert clasificar("FOL_nomina.pdf", reglas) is None
+
+
+def test_reglas_efectivas_explicitas(tmp_path):
+    ruta = tmp_path / "reglas.json"
+    _regla_digitalizacion(ruta)
+
+    reglas = reglas_efectivas(ruta)
+
+    assert [r.asignatura for r in reglas] == ["Digitalizacion"]
+
+
+def test_reglas_efectivas_fusiona_usuario(tmp_path, monkeypatch):
+    usuario = ruta_reglas_usuario()
+    usuario.parent.mkdir(parents=True, exist_ok=True)
+    _regla_digitalizacion(usuario)
+
+    reglas = reglas_efectivas()
+    nombres = [r.asignatura for r in reglas]
+
+    assert nombres[0] == "Digitalizacion"
+    assert "Programacion" in nombres
+    assert "FOL" in nombres
+
+
+def test_reglas_efectivas_usuario_sobrescribe(tmp_path, monkeypatch):
+    usuario = ruta_reglas_usuario()
+    usuario.parent.mkdir(parents=True, exist_ok=True)
+    usuario.write_text(
+        json.dumps(
+            [
+                {
+                    "asignatura": "FOL",
+                    "aliases": ["fol"],
+                    "temas": [{"tema": "Custom", "aliases": ["custom"]}],
+                }
+            ]
+        ),
+        encoding="utf-8",
+    )
+
+    reglas = reglas_efectivas()
+    fol = [r for r in reglas if r.asignatura == "FOL"]
+
+    assert len(fol) == 1
+    assert fol[0].temas == (("Custom", ("custom",)),)

@@ -6,6 +6,7 @@ solo se encarga de leerlas, validarlas y clasificar nombres de archivo.
 
 from dataclasses import dataclass
 import json
+import os
 from pathlib import Path
 import re
 import unicodedata
@@ -99,6 +100,39 @@ def cargar_reglas(ruta=None):
 REGLAS = cargar_reglas()
 
 
+def ruta_reglas_usuario():
+    """Ruta de las reglas del usuario (~/.config/organizador/reglas.json)."""
+    base = os.environ.get("XDG_CONFIG_HOME")
+    config = Path(base) if base else Path.home() / ".config"
+    return config / "organizador" / ARCHIVO_REGLAS
+
+
+def reglas_efectivas(ruta=None):
+    """Reglas que se usaran, como tupla de Regla.
+
+    - Con `ruta`: solo se cargan las reglas de ese fichero.
+    - Sin `ruta`: se cargan las del usuario (si existen) y despues las del
+      paquete. Si una asignatura esta en ambas, gana la del usuario.
+    """
+    if ruta is not None:
+        return cargar_reglas(ruta)
+
+    reglas = []
+    vistas = set()
+
+    usuario = ruta_reglas_usuario()
+    if usuario.is_file():
+        for regla in cargar_reglas(usuario):
+            reglas.append(regla)
+            vistas.add(regla.asignatura)
+
+    for regla in cargar_reglas():
+        if regla.asignatura not in vistas:
+            reglas.append(regla)
+
+    return tuple(reglas)
+
+
 def normalizar(texto):
     """Pasa a minusculas, quita tildes y uniformiza separadores."""
     texto = unicodedata.normalize("NFKD", texto)
@@ -162,14 +196,18 @@ def _pega(nombre_archivo, alias):
     return False
 
 
-def clasificar(nombre_archivo):
-    """Devuelve (asignatura, tema) o None si no se puede clasificar."""
+def clasificar(nombre_archivo, reglas=None):
+    """Devuelve (asignatura, tema) o None si no se puede clasificar.
+
+    `reglas` permite clasificar con una tupla de Regla distinta a la del
+    paquete (por ejemplo, reglas personalizadas del usuario).
+    """
     tokens = _tokens(nombre_archivo)
 
     def encaja(alias):
         return _coincide(tokens, alias) or _pega(nombre_archivo, alias)
 
-    for regla in REGLAS:
+    for regla in (REGLAS if reglas is None else reglas):
         if not any(encaja(a) for a in regla.aliases):
             continue
         for tema, temas_aliases in regla.temas:

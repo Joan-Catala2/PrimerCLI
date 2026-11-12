@@ -63,10 +63,12 @@ def limpiar_vacias(base):
             pass
 
 
-def organizar(origen, salida, simular=False):
+def organizar(origen, salida, simular=False, reglas=None):
     """Mueve cada archivo de `origen` a su carpeta clasificada.
 
     Si `simular` es True no se mueve nada: solo se calcula el destino.
+    `reglas` permite usar una tupla de Regla personalizada; si es None se
+    usan las del paquete.
 
     Devuelve un dict con el resumen:
       {"organizados": [(archivo, asignatura, tema)],
@@ -96,7 +98,7 @@ def organizar(origen, salida, simular=False):
             continue
 
         try:
-            resultado = clasificar(archivo.name)
+            resultado = clasificar(archivo.name, reglas)
             if resultado is None:
                 asignatura, tema = REVISION, ""
             else:
