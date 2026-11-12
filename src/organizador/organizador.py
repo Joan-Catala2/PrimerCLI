@@ -1,5 +1,6 @@
 """Motor de organizacion: lee una carpeta y mueve los archivos clasificados."""
 
+import fnmatch
 from pathlib import Path
 from shutil import move
 
@@ -21,15 +22,76 @@ def _debe_ignorar(archivo):
     return archivo.suffix.lower() in SUFIJOS_IGNORADOS
 
 
+def _dentro_de(ruta, base):
+    """True si `ruta` esta dentro de `base` (compatible con Python 3.8)."""
+    ruta = Path(ruta).resolve()
+    base = Path(base).resolve()
+    return ruta == base or base in ruta.parents
+
+
+def _en_carpeta_oculta(archivo, origen):
+    """True si alguna carpeta intermedia (bajo `origen`) empieza por punto."""
+    try:
+        relativa = Path(archivo).relative_to(Path(origen))
+    except ValueError:
+        return False
+    return any(parte.startswith(".") for parte in relativa.parts[:-1])
+
+
+def _normalizar_extensiones(extensiones):
+    if not extensiones:
+        return set()
+    normalizadas = set()
+    for extension in extensiones:
+        extension = extension.strip().lower()
+        if not extension:
+            continue
+        if not extension.startswith("."):
+            extension = "." + extension
+        normalizadas.add(extension)
+    return normalizadas
+
+
+def _pasa_filtros(archivo, origen, extensiones, excluir, desde):
+    """True si el archivo encaja con los filtros pedidos por el usuario."""
+    if extensiones and archivo.suffix.lower() not in extensiones:
+        return False
+
+    if excluir:
+        relativa = str(Path(archivo).relative_to(Path(origen)))
+        patrones = (archivo.name, relativa, relativa.replace("\\", "/"))
+        if any(
+            fnmatch.fnmatch(candidato, patron)
+            for patron in excluir
+            for candidato in patrones
+        ):
+            return False
+
+    if desde is not None:
+        try:
+            if archivo.stat().st_mtime < desde.timestamp():
+                return False
+        except OSError:
+            return False
+
+    return True
+
+
+def _listar_archivos(origen, recursivo):
+    if recursivo:
+        candidatos = origen.rglob("*")
+    else:
+        candidatos = origen.iterdir()
+    return sorted(ruta for ruta in candidatos if ruta.is_file())
+
+
 def _destino_disponible(destino):
     """Evita sobreescribir: añade -1, -2, ... si el nombre ya existe."""
     if not destino.exists():
         return destino
     n = 1
     while True:
-        candidato = destino.with_name(
-            "{}-{}{}".format(destino.stem, n, destino.suffix)
-        )
+        candidato = destino.with_name("{}-{}{}".format(destino.stem, n, destino.suffix))
         if not candidato.exists():
             return candidato
         n += 1
@@ -63,18 +125,31 @@ def limpiar_vacias(base):
             pass
 
 
-def organizar(origen, salida, simular=False, reglas=None):
+def organizar(
+    origen,
+    salida,
+    simular=False,
+    reglas=None,
+    recursivo=False,
+    extensiones=None,
+    excluir=None,
+    desde=None,
+    ignorar=None,
+):
     """Mueve cada archivo de `origen` a su carpeta clasificada.
 
     Si `simular` es True no se mueve nada: solo se calcula el destino.
     `reglas` permite usar una tupla de Regla personalizada; si es None se
-    usan las del paquete.
+    usan las del paquete. `recursivo` recorre subcarpetas; `extensiones`,
+    `excluir` y `desde` filtran que archivos se procesan. `ignorar` es una
+    lista de rutas que nunca se recorren (por ejemplo, la carpeta de logs).
 
     Devuelve un dict con el resumen:
       {"organizados": [(archivo, asignatura, tema)],
        "revision": [archivo],
        "movimientos": [{nombre, asignatura, tema, destino}],
-       "errores": [{nombre, error}]}
+       "errores": [{nombre, error}],
+       "filtrados": int}
     """
     origen = Path(origen).resolve()
     salida = Path(salida).resolve()
@@ -87,14 +162,25 @@ def organizar(origen, salida, simular=False, reglas=None):
             "La carpeta de salida no puede estar dentro del origen: {}".format(salida)
         )
 
+    extensiones = _normalizar_extensiones(extensiones)
+    excluir = list(excluir or ())
+    ignorar = [Path(ruta).resolve() for ruta in (ignorar or ())]
+
     organizados = []
     revision = []
     movimientos = []
     errores = []
+    filtrados = 0
 
-    for archivo in sorted(origen.iterdir()):
-        # Solo archivos del primer nivel; se ignoran subcarpetas y temporales.
-        if not archivo.is_file() or _debe_ignorar(archivo):
+    for archivo in _listar_archivos(origen, recursivo):
+        if _debe_ignorar(archivo):
+            continue
+        if recursivo and _en_carpeta_oculta(archivo, origen):
+            continue
+        if any(_dentro_de(archivo, base) for base in ignorar):
+            continue
+        if not _pasa_filtros(archivo, origen, extensiones, excluir, desde):
+            filtrados += 1
             continue
 
         try:
@@ -136,15 +222,18 @@ def organizar(origen, salida, simular=False, reglas=None):
         "revision": revision,
         "movimientos": movimientos,
         "errores": errores,
+        "filtrados": filtrados,
     }
 
 
-def deshacer(registro):
+def deshacer(registro, simular=False):
     """Devuelve al origen los archivos indicados en el ultimo log.
 
-    Devuelve {"deshechos": [{nombre, destino}], "errores": [{nombre, error}]}.
+    Con `simular=True` calcula los destinos pero no mueve nada ni limpia
+    carpetas vacias. Devuelve
+    {"deshechos": [{nombre, destino}], "errores": [{nombre, error}]}.
     """
-    deshechos = []
+    deshechos: list = []
     errores = []
 
     origen_dato = registro.get("origen") if isinstance(registro, dict) else None
@@ -170,12 +259,13 @@ def deshacer(registro):
             if not actual.is_file():
                 raise FileNotFoundError("No existe el archivo: {}".format(actual))
             destino = _destino_disponible(origen / nombre)
-            move(str(actual), str(destino))
+            if not simular:
+                move(str(actual), str(destino))
             deshechos.append({"nombre": nombre, "destino": str(destino)})
         except OSError as error:
             errores.append({"nombre": nombre, "error": str(error)})
 
-    if salida_dato:
+    if salida_dato and not simular:
         limpiar_vacias(Path(salida_dato))
 
     return {"deshechos": deshechos, "errores": errores}
