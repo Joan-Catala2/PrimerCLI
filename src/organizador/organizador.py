@@ -4,6 +4,7 @@ import fnmatch
 from pathlib import Path
 from shutil import move
 
+from .excepciones import CarpetaNoValidaError, afirmar
 from .reglas import REVISION, clasificar
 
 NOMBRE_LOG = "organizador.log.json"
@@ -154,11 +155,13 @@ def organizar(
     origen = Path(origen).resolve()
     salida = Path(salida).resolve()
 
+    if not origen.exists():
+        raise CarpetaNoValidaError("No existe la carpeta de origen: {}".format(origen))
     if not origen.is_dir():
-        raise NotADirectoryError("No existe la carpeta de origen: {}".format(origen))
+        raise CarpetaNoValidaError("El origen no es una carpeta: {}".format(origen))
 
     if salida == origen or origen in salida.parents:
-        raise ValueError(
+        raise CarpetaNoValidaError(
             "La carpeta de salida no puede estar dentro del origen: {}".format(salida)
         )
 
@@ -171,6 +174,7 @@ def organizar(
     movimientos = []
     errores = []
     filtrados = 0
+    total_vistos = 0
 
     for archivo in _listar_archivos(origen, recursivo):
         if _debe_ignorar(archivo):
@@ -179,6 +183,7 @@ def organizar(
             continue
         if any(_dentro_de(archivo, base) for base in ignorar):
             continue
+        total_vistos += 1
         if not _pasa_filtros(archivo, origen, extensiones, excluir, desde):
             filtrados += 1
             continue
@@ -214,8 +219,14 @@ def organizar(
             else:
                 organizados.append((archivo.name, asignatura, tema))
         except OSError as error:
-            # Un archivo problematico no debe detener el resto.
+            # Un archivo problematico no debe detener el resto: el error se
+            # acumula en el resumen y la pasada continua.
             errores.append({"nombre": archivo.name, "error": str(error)})
+
+    afirmar(
+        len(organizados) + len(revision) + filtrados + len(errores) <= total_vistos,
+        "el resumen no cuadra con los archivos vistos",
+    )
 
     return {
         "organizados": organizados,

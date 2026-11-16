@@ -1,5 +1,6 @@
 import pytest
 
+from organizador.excepciones import CarpetaNoValidaError, OrganizadorError
 from organizador.organizador import deshacer, organizar
 
 
@@ -97,8 +98,33 @@ def test_ignora_temporales_y_log(tmp_path):
 def test_salida_dentro_del_origen_falla(tmp_path):
     origen = _crear_origen(tmp_path)
 
-    with pytest.raises(ValueError, match="dentro del origen"):
+    with pytest.raises(CarpetaNoValidaError, match="dentro del origen"):
         organizar(origen, origen / "Organizado")
+
+
+def test_origen_inexistente_es_error_previsible(tmp_path):
+    """Caso feo: el origen no existe; debe ser mensaje humano, no OSError."""
+    with pytest.raises(CarpetaNoValidaError, match="No existe la carpeta"):
+        organizar(tmp_path / "no_existe", tmp_path / "Organizado")
+
+
+def test_origen_es_un_archivo_no_una_carpeta(tmp_path):
+    """Caso feo: pasar un fichero como origen da un mensaje especifico."""
+    archivo = tmp_path / "soy_un_archivo.txt"
+    archivo.write_text("x", encoding="utf-8")
+
+    with pytest.raises(CarpetaNoValidaError, match="no es una carpeta"):
+        organizar(archivo, tmp_path / "Organizado")
+
+
+def test_afirmar_falla_como_error_previsible():
+    """`afirmar` es una asercion de desarrollo que sobrevive a python -O."""
+    from organizador.excepciones import afirmar
+
+    afirmar(True, "esto no debe lanzar")
+
+    with pytest.raises(OrganizadorError, match="Error interno"):
+        afirmar(False, "invariante rota")
 
 
 def test_deshacer_devuelve_archivos_al_origen(tmp_path):
