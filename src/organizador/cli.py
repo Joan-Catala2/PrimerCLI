@@ -1,19 +1,15 @@
 """Punto de entrada de la CLI `organizador`."""
 
 import argparse
-import json
 import sys
 from datetime import datetime
 from pathlib import Path
 
 from . import __version__
-from .excepciones import (
-    AccionNoValida,
-    ConfigError,
-    ErrorDeUso,
-    OrganizadorError,
-)
+from .excepciones import AccionNoValida, ConfigError, ErrorDeUso, OrganizadorError
 from .organizador import deshacer, limpiar_vacias, mover_archivo, organizar
+from .presentacion import emitir_json
+from .presentacion.consola import Consola
 from .registro import CARPETA_LOGS, Registro
 from .reglas import (
     REVISION,
@@ -22,13 +18,8 @@ from .reglas import (
     ruta_reglas_usuario,
 )
 
+
 CARPETA_SUGERIDA = "descargas"
-
-
-def _emitir_json(datos):
-    """Escribe `datos` como JSON a stdout (una sola linea legible)."""
-    json.dump(datos, sys.stdout, indent=2, ensure_ascii=False)
-    sys.stdout.write("\n")
 
 
 def _parsear_fecha(texto):
@@ -49,34 +40,16 @@ def _extensiones_de(valores):
     return extensiones
 
 
-def _confirmar(total, json_salida=False):
-    """Pide confirmacion; en modo JSON el aviso va a stderr."""
-    texto = "¿Mover {} archivos? [s/N]: ".format(total)
-    try:
-        if json_salida:
-            print(texto, end="", file=sys.stderr, flush=True)
-            respuesta = input()
-        else:
-            respuesta = input(texto)
-    except EOFError:
-        if json_salida:
-            print(file=sys.stderr)
-        return False
-    return respuesta.strip().lower() in {"s", "si", "sí", "y", "yes"}
+def _confirmar(total, consola):
+    return consola.confirmar(total)
 
 
-def _preguntar(texto, json_salida=False):
-    """Pide un dato; en modo JSON el enunciado va a stderr."""
-    if json_salida:
-        print(texto, end="", file=sys.stderr, flush=True)
-        return input()
-    return input(texto)
+def _preguntar(texto, consola):
+    return consola.preguntar(texto)
 
 
-def _respuesta_si(texto, json_salida=False):
-    """Pregunta de si/no. Un EOFError se propaga al llamador."""
-    respuesta = _preguntar(texto, json_salida)
-    return respuesta.strip().lower() in {"s", "si", "sí", "y", "yes"}
+def _respuesta_si(texto, consola):
+    return consola.respuesta_si(texto)
 
 
 def _mapa_temas(reglas):
