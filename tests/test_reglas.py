@@ -2,6 +2,7 @@ import json
 
 import pytest
 
+from organizador.excepciones import ConfigError, OrganizadorError
 from organizador.reglas import (
     cargar_reglas,
     clasificar,
@@ -81,7 +82,7 @@ def test_cargar_reglas_json_invalido(tmp_path):
     ruta = tmp_path / "reglas.json"
     ruta.write_text("{no es json", encoding="utf-8")
 
-    with pytest.raises(ValueError, match="JSON invalido"):
+    with pytest.raises(ConfigError, match="JSON invalido"):
         cargar_reglas(ruta)
 
 
@@ -89,7 +90,31 @@ def test_cargar_reglas_valida_campos(tmp_path):
     ruta = tmp_path / "reglas.json"
     ruta.write_text(json.dumps([{"asignatura": "X", "aliases": []}]), encoding="utf-8")
 
-    with pytest.raises(ValueError, match="aliases"):
+    with pytest.raises(ConfigError, match="aliases"):
+        cargar_reglas(ruta)
+
+
+def test_cargar_reglas_fichero_inexistente_es_error_previsible(tmp_path):
+    """Caso feo: `--reglas` apunta a una ruta que no existe."""
+    with pytest.raises(ConfigError, match="No existe el fichero de reglas"):
+        cargar_reglas(tmp_path / "no_existe.json")
+
+
+def test_cargar_reglas_carpeta_es_error_previsible(tmp_path):
+    """Caso feo: la ruta de `--reglas` es una carpeta, no un JSON."""
+    carpeta = tmp_path / "una_carpeta"
+    carpeta.mkdir()
+
+    with pytest.raises(ConfigError, match="es una carpeta"):
+        cargar_reglas(carpeta)
+
+
+def test_todo_error_de_reglas_es_organizador_error(tmp_path):
+    """Un error de config nunca debe escapar como excepción no prevista."""
+    ruta = tmp_path / "reglas.json"
+    ruta.write_text("{no es json", encoding="utf-8")
+
+    with pytest.raises(OrganizadorError):
         cargar_reglas(ruta)
 
 

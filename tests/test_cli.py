@@ -437,7 +437,7 @@ def test_cli_desde_invalido(tmp_path, monkeypatch, capsys):
 
     codigo = cli.main(["ejecutar", str(origen), "--desde", "ayer"])
 
-    assert codigo == 1
+    assert codigo == 2
     assert "YYYY-MM-DD" in capsys.readouterr().err
 
 
@@ -684,6 +684,90 @@ def test_cli_deshacer_log_invalido(tmp_path, monkeypatch, capsys):
 
     assert codigo == 1
     assert "log inválido" in capsys.readouterr().err
+
+
+def test_cli_deshacer_log_invalido_json_es_json_valido(tmp_path, monkeypatch, capsys):
+    """Caso feo: `deshacer --json` con log corrupto nunca saca texto plano."""
+    monkeypatch.chdir(tmp_path)
+    ruta = tmp_path / "malo.json"
+    ruta.write_text("{no", encoding="utf-8")
+
+    codigo = cli.main(["deshacer", "--log", str(ruta), "--json"])
+
+    assert codigo == 1
+    datos = json.loads(capsys.readouterr().out)
+    assert datos["ok"] is False
+    assert datos["error"] == "ConfigError"
+    assert "log inválido" in datos["mensaje"]
+
+
+def test_cli_deshacer_sin_origen_en_el_log(tmp_path, monkeypatch, capsys):
+    """Caso feo: log valido pero sin 'origen': se avisa y devuelve codigo 1."""
+    monkeypatch.chdir(tmp_path)
+    ruta = tmp_path / "sin_origen.json"
+    ruta.write_text(json.dumps({"movimientos": []}), encoding="utf-8")
+
+    codigo = cli.main(["deshacer", "--log", str(ruta)])
+
+    assert codigo == 1
+    assert "El log no tiene 'origen'" in capsys.readouterr().err
+
+
+def test_cli_deshacer_historial_corrupto_no_rompe_el_bucle(
+    tmp_path, monkeypatch, capsys
+):
+    """Un log corrupto en el historial no debe abortar el deshacer del resto."""
+    monkeypatch.chdir(tmp_path)
+    origen = tmp_path / "descargas"
+    origen.mkdir()
+    (origen / "FOL_nomina.pdf").write_text("x", encoding="utf-8")
+    salida = tmp_path / "Organizado"
+    assert cli.main(["ejecutar", str(origen), "--salida", str(salida)]) == 0
+
+    (tmp_path / "organizador-logs" / "0000-malo.json").write_text(
+        "{no", encoding="utf-8"
+    )
+
+    codigo = cli.main(["deshacer", "--ultimos", "2"])
+
+    assert codigo == 1
+    assert (origen / "FOL_nomina.pdf").exists()
+    assert "log inválido" in capsys.readouterr().err
+
+
+def test_cli_error_en_modo_json_es_objeto_valido(tmp_path, monkeypatch, capsys):
+    """Caso feo: origen inexistente con `--json` -> error en JSON, no stderr."""
+    monkeypatch.chdir(tmp_path)
+
+    codigo = cli.main(["ejecutar", str(tmp_path / "no_existe"), "--json"])
+
+    assert codigo == 1
+    datos = json.loads(capsys.readouterr().out)
+    assert datos["ok"] is False
+    assert datos["error"] == "CarpetaNoValidaError"
+    assert "No existe la carpeta de origen" in datos["mensaje"]
+    assert capsys.readouterr().err == ""
+
+
+def test_cli_accion_desconocida_devuelve_2(tmp_path, monkeypatch, capsys):
+    """Caso feo: accion inventada -> argparse la rechaza con su codigo 2."""
+    monkeypatch.chdir(tmp_path)
+
+    with pytest.raises(SystemExit) as excion:
+        cli.main(["inventar"])
+
+    assert excion.value.code == 2
+    assert "invalid choice" in capsys.readouterr().err
+
+
+def test_cli_deshacer_ultimos_cero_es_error_de_uso(tmp_path, monkeypatch, capsys):
+    """Caso feo: `--ultimos 0` es una combinacion de opciones imposible."""
+    monkeypatch.chdir(tmp_path)
+
+    codigo = cli.main(["deshacer", "--ultimos", "0"])
+
+    assert codigo == 2
+    assert "--ultimos" in capsys.readouterr().err
 
 
 def test_cli_deshacer_log_simular_json(tmp_path, monkeypatch, capsys):

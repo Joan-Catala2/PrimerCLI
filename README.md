@@ -80,6 +80,33 @@ organizador --version
 El log solo se escribe cuando la ejecución mueve archivos o registra
 errores. El historial vive en una carpeta, así que no se organiza por error.
 
+### Errores previsibles
+
+Los errores que el usuario puede provocar (reglas con JSON inválido, un
+origen que no existe, una fecha mal formada, un log corrupto…) nunca se
+muestran como *traceback*: se captura la excepción de `organizador.excepciones`
+y se imprime un mensaje humano con `Error: ...` y un código de salida
+coherente (`1` para errores generales, `2` para errores de uso como
+`--desde ayer` o `--ultimos 0`). En modo `--json`, el error se emite como un
+objeto JSON válido (`{"ok": false, "error": "ConfigError", "mensaje": ...}`)
+para que un script nunca reciba texto plano donde espera JSON. Un *traceback*
+solo debe aparecer ante bugs reales.
+
+La jerarquía vive en `src/organizador/excepciones.py`:
+
+| Excepción | Cuándo |
+| --- | --- |
+| `OrganizadorError` | base de todo error previsible |
+| `ConfigError` | reglas o logs con formato/ruta incorrectos |
+| `AccionNoValida` | acción desconocida |
+| `ErrorDeUso` (← `AccionNoValida`) | combinación de opciones imposible |
+| `CarpetaNoValidaError` | origen inexistente o salida dentro del origen |
+| `ErrorDeArchivo` / `ErrorDeSistema` | fichero/log que no se puede leer |
+
+Para las invariantes internas del motor se usa `excepciones.afirmar()`:
+una aserción de desarrollo que, a diferencia de un `assert` normal, sigue
+lanzando (como `OrganizadorError`) aunque se ejecute con `python -O`.
+
 ### Reglas personalizadas
 
 Puedes añadir o sobrescribir asignaturas sin tocar el paquete creando

@@ -11,6 +11,8 @@ import unicodedata
 from dataclasses import dataclass
 from pathlib import Path
 
+from .excepciones import ConfigError
+
 REVISION = "_revision"
 ARCHIVO_REGLAS = "reglas.json"
 
@@ -23,7 +25,7 @@ class Regla:
 
 
 def _error(ruta, indice, mensaje):
-    return ValueError("Regla {} en {}: {}".format(indice + 1, ruta, mensaje))
+    return ConfigError("Regla {} en {}: {}".format(indice + 1, ruta, mensaje))
 
 
 def _lista_textos(valor, campo, ruta, indice):
@@ -76,21 +78,27 @@ def cargar_reglas(ruta=None):
     """Carga y valida `reglas.json`. Devuelve una tupla de Regla."""
     ruta = Path(ruta) if ruta is not None else Path(__file__).with_name(ARCHIVO_REGLAS)
 
-    with open(ruta, encoding="utf-8") as archivo:
-        try:
+    try:
+        with open(ruta, encoding="utf-8") as archivo:
             datos = json.load(archivo)
-        except json.JSONDecodeError as error:
-            raise ValueError("JSON invalido en {}: {}".format(ruta, error)) from error
+    except FileNotFoundError as error:
+        raise ConfigError("No existe el fichero de reglas: {}".format(ruta)) from error
+    except IsADirectoryError as error:
+        raise ConfigError(
+            "La ruta de reglas es una carpeta, no un fichero: {}".format(ruta)
+        ) from error
+    except json.JSONDecodeError as error:
+        raise ConfigError("JSON invalido en {}: {}".format(ruta, error)) from error
 
     if not isinstance(datos, list) or not datos:
-        raise ValueError("{} debe contener una lista no vacia de reglas".format(ruta))
+        raise ConfigError("{} debe contener una lista no vacia de reglas".format(ruta))
 
     reglas = tuple(_cargar_regla(item, ruta, i) for i, item in enumerate(datos))
 
     nombres = [regla.asignatura for regla in reglas]
     duplicadas = sorted({nombre for nombre in nombres if nombres.count(nombre) > 1})
     if duplicadas:
-        raise ValueError(
+        raise ConfigError(
             "Asignaturas duplicadas en {}: {}".format(ruta, ", ".join(duplicadas))
         )
 

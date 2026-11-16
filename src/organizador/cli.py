@@ -7,6 +7,13 @@ from datetime import datetime
 from pathlib import Path
 
 from . import __version__
+from .excepciones import (
+    AccionNoValida,
+    ConfigError,
+    ErrorDeUso,
+    OrganizadorError,
+    afirmar,
+)
 from .organizador import deshacer, limpiar_vacias, mover_archivo, organizar
 from .reglas import (
     REVISION,
@@ -30,7 +37,9 @@ def _parsear_fecha(texto):
     try:
         return datetime.strptime(texto, "%Y-%m-%d")
     except ValueError:
-        raise ValueError("fecha inválida '{}': usa el formato YYYY-MM-DD".format(texto))
+        raise ErrorDeUso(
+            "fecha inválida '{}': usa el formato YYYY-MM-DD".format(texto)
+        ) from None
 
 
 def _extensiones_de(valores):
@@ -108,6 +117,10 @@ def _guardar_log(origen, salida, resumen, ruta):
         "movimientos": resumen["movimientos"],
         "errores": resumen["errores"],
     }
+    afirmar(
+        isinstance(datos["movimientos"], list),
+        "el log guardado no es una lista de movimientos",
+    )
     ruta = Path(ruta)
     ruta.parent.mkdir(parents=True, exist_ok=True)
     with open(ruta, "w", encoding="utf-8") as archivo:
@@ -326,12 +339,8 @@ def _revisar(salida, interactivo=False, reglas=None, json_salida=False):
 
 
 def _obtener_reglas(ruta):
-    """Carga las reglas efectivas; imprime el error y devuelve None si falla."""
-    try:
-        return reglas_efectivas(ruta)
-    except (OSError, ValueError) as error:
-        print("Error: {}".format(error), file=sys.stderr)
-        return None
+    """Carga las reglas efectivas. Los ConfigError se propagan a main()."""
+    return reglas_efectivas(ruta)
 
 
 def _listar_reglas(reglas):
@@ -349,25 +358,23 @@ def _listar_reglas(reglas):
 def _deshacer_un_log(ruta, simular=False):
     """Carga y revierte un log. Devuelve (estado, resumen).
 
-    estado: "ok", "missing" (no existe) o "error" (log invalido).
+    estado: "ok", "missing" (no existe) o "error" (log invalido). El error
+    invalido se propaga como excepcion y lo resuelve el llamador segun el
+    contexto: una ruta concreta aborta con `ConfigError`; dentro del
+    historial solo cuenta como fallo de ese log.
     """
     try:
         with open(ruta, encoding="utf-8") as archivo:
-            registro = json.load(archivo)
+            datos = json.load(archivo)
     except FileNotFoundError:
         return "missing", None
     except json.JSONDecodeError as error:
-        print("Error: log inválido {}: {}".format(ruta, error), file=sys.stderr)
-        return "error", None
+        return "error", "log inválido {}: {}".format(ruta, error)
 
-    if not isinstance(registro, dict):
-        print(
-            "Error: el log no tiene el formato esperado: {}".format(ruta),
-            file=sys.stderr,
-        )
-        return "error", None
+    if not isinstance(datos, dict):
+        return "error", "el log no tiene el formato esperado: {}".format(ruta)
 
-    return "ok", deshacer(registro, simular=simular)
+    return "ok", deshacer(datos, simular=simular)
 
 
 def _info_log(ruta):
@@ -402,7 +409,9 @@ def _detalles_deshacer(resumen, json_salida=False):
 
 def _deshacer(ruta, simular=False, json_salida=False):
     """Revierte los movimientos guardados en un unico log."""
-    estado, resumen = _deshacer_un_log(ruta, simular=simular)
+    estado, resultado = _deshacer_un_log(ruta, simular=simular)
+    if estado == "error":
+        raise ConfigError(resultado)
     if estado == "missing":
         if json_salida:
             _emitir_json(
@@ -418,20 +427,7 @@ def _deshacer(ruta, simular=False, json_salida=False):
             return 0
         print("No hay log para deshacer: {}".format(ruta))
         return 0
-    if estado == "error":
-        if json_salida:
-            _emitir_json(
-                {
-                    "ruta": str(ruta),
-                    "existe": True,
-                    "simulado": simular,
-                    "error": "log inválido",
-                    "deshechos": [],
-                    "errores": [],
-                    "borrado": False,
-                }
-            )
-        return 1
+    resumen = resultado
 
     borrado = False
     if not simular and not resumen["errores"]:
@@ -486,14 +482,16 @@ def _deshacer_historial(carpeta, ultimos, simular=False, json_salida=False):
     for numero, ruta in enumerate(rutas, start=1):
         if not json_salida:
             print("[{}/{}] {}".format(numero, len(rutas), ruta.name))
-        estado, resumen = _deshacer_un_log(ruta, simular=simular)
+        estado, resultado = _deshacer_un_log(ruta, simular=simular)
         if estado == "error":
             errores += 1
-            registros.append({"ruta": str(ruta), "error": "log inválido"})
+            print("[!] {}: {}".format(ruta.name, resultado), file=sys.stderr)
+            registros.append({"ruta": str(ruta), "error": resultado})
             continue
         if estado == "missing":
             registros.append({"ruta": str(ruta), "error": "no existe"})
             continue
+        resumen = resultado
 
         _detalles_deshacer(resumen, json_salida)
         total += len(resumen["deshechos"])
@@ -572,7 +570,7 @@ def _mostrar_movimientos(resumen, salida, etiqueta="[OK]"):
         print("{} {} -> {}".format(marca, movimiento["nombre"], relativo))
 
 
-def main(argv=None):
+def _ejecutar(argv=None):
     parser = argparse.ArgumentParser(
         prog="organizador",
         description="Organiza archivos descargados por asignatura y tema "
@@ -730,23 +728,19 @@ def main(argv=None):
     args = parser.parse_args(argv)
 
     if args.accion == "reglas":
-        reglas = _obtener_reglas(args.reglas)
-        if reglas is None:
-            return 1
-        return _listar_reglas(reglas)
+        return _listar_reglas(_obtener_reglas(args.reglas))
 
     if args.accion == "revisar":
-        reglas = _obtener_reglas(args.reglas)
-        if reglas is None:
-            return 1
         return _revisar(
-            Path(args.salida).resolve(), args.interactivo, reglas, args.json
+            Path(args.salida).resolve(),
+            args.interactivo,
+            _obtener_reglas(args.reglas),
+            args.json,
         )
 
     if args.accion == "deshacer":
         if args.ultimos < 1:
-            print("Error: --ultimos debe ser 1 o mas.", file=sys.stderr)
-            return 1
+            raise ErrorDeUso("--ultimos debe ser 1 o mas.")
 
         if args.listar:
             if args.log is not None:
@@ -767,23 +761,17 @@ def main(argv=None):
         )
 
     if args.accion != "ejecutar":
-        parser.print_help()
-        return 1
+        raise AccionNoValida(
+            "acción no reconocida: '{}'. Ejecuta 'organizador --help' para "
+            "ver las disponibles.".format(args.accion)
+        )
 
     reglas = _obtener_reglas(args.reglas)
-    if reglas is None:
-        return 1
 
     origen = Path(args.origen).resolve()
     salida = Path(args.salida).resolve()
 
-    desde = None
-    if args.desde is not None:
-        try:
-            desde = _parsear_fecha(args.desde)
-        except ValueError as error:
-            print("Error: {}".format(error), file=sys.stderr)
-            return 1
+    desde = _parsear_fecha(args.desde) if args.desde is not None else None
 
     opciones = {
         "reglas": reglas,
@@ -795,11 +783,7 @@ def main(argv=None):
     }
 
     simulado = args.simular or args.confirmar
-    try:
-        resumen = organizar(origen, salida, simular=simulado, **opciones)
-    except (NotADirectoryError, ValueError, OSError) as error:
-        print("Error: {}".format(error), file=sys.stderr)
-        return 1
+    resumen = organizar(origen, salida, simular=simulado, **opciones)
 
     cancelado = False
     if args.confirmar and not args.simular:
@@ -807,11 +791,7 @@ def main(argv=None):
             if not args.json and not args.seco:
                 _mostrar_movimientos(resumen, salida, "[SIM]")
             if _confirmar(len(resumen["movimientos"]), args.json):
-                try:
-                    resumen = organizar(origen, salida, simular=False, **opciones)
-                except (NotADirectoryError, ValueError, OSError) as error:
-                    print("Error: {}".format(error), file=sys.stderr)
-                    return 1
+                resumen = organizar(origen, salida, simular=False, **opciones)
                 simulado = False
             else:
                 cancelado = True
@@ -885,6 +865,37 @@ def main(argv=None):
     if simulado:
         print("  Modo:                simulación (no se ha movido nada)")
     return 0
+
+
+def _detectar_json(argv):
+    """True si el argv pide `--json`, aunque todavia no este parseado."""
+    return argv is not None and "--json" in argv
+
+
+def main(argv=None):
+    """Punto de entrada: despacha la accion y convierte errores en mensajes.
+
+    Los `OrganizadorError` (reglas malas, fechas invalidas, origen
+    inexistente...) se imprimen como mensaje humano, sin traceback, y
+    devuelven el codigo de salida de cada error. En modo `--json` el error
+    se emite como un objeto JSON valido (`ok: false`) para que un script
+    nunca reciba texto plano donde espera JSON. El resto de excepciones no
+    capturadas se dejan pasar: un traceback ante un bug real es intencionado.
+    """
+    try:
+        return _ejecutar(argv)
+    except OrganizadorError as error:
+        if _detectar_json(argv):
+            _emitir_json(
+                {
+                    "ok": False,
+                    "error": type(error).__name__,
+                    "mensaje": str(error),
+                }
+            )
+        else:
+            print("Error: {}".format(error), file=sys.stderr)
+        return error.codigo_salida
 
 
 if __name__ == "__main__":
