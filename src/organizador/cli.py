@@ -12,9 +12,9 @@ from .excepciones import (
     ConfigError,
     ErrorDeUso,
     OrganizadorError,
-    afirmar,
 )
 from .organizador import deshacer, limpiar_vacias, mover_archivo, organizar
+from .registro import CARPETA_LOGS, Registro
 from .reglas import (
     REVISION,
     clasificar,
@@ -23,7 +23,6 @@ from .reglas import (
 )
 
 CARPETA_SUGERIDA = "descargas"
-CARPETA_LOGS = "organizador-logs"
 
 
 def _emitir_json(datos):
@@ -64,89 +63,6 @@ def _confirmar(total, json_salida=False):
             print(file=sys.stderr)
         return False
     return respuesta.strip().lower() in {"s", "si", "sí", "y", "yes"}
-
-
-def _resolver_log(ruta, origen, salida):
-    """Devuelve una ruta de log que nunca cae dentro de `origen`.
-
-    Si la ruta pedida (relativa al directorio actual) esta dentro del
-    origen, se recoloca junto a la carpeta de salida para que una nueva
-    pasada no la trate como archivo a organizar.
-    """
-    ruta = Path(ruta)
-    if not ruta.is_absolute():
-        ruta = Path.cwd() / ruta
-    ruta = ruta.resolve()
-
-    origen = Path(origen).resolve()
-    if ruta == origen or origen in ruta.parents:
-        nueva = (Path(salida).resolve().parent / ruta.name).resolve()
-        print(
-            "Aviso: el log se guardara fuera del origen en {}".format(nueva),
-            file=sys.stderr,
-        )
-        return nueva
-    return ruta
-
-
-def _avisar_sobrescritura(ruta):
-    """Avisa si ya existe un log con movimientos que se va a sobrescribir."""
-    ruta = Path(ruta)
-    if not ruta.is_file():
-        return
-    try:
-        with open(ruta, encoding="utf-8") as archivo:
-            datos = json.load(archivo)
-        movimientos = len(datos.get("movimientos", []))
-    except (OSError, json.JSONDecodeError, AttributeError):
-        movimientos = 0
-    if movimientos:
-        print(
-            "Aviso: se sobrescribira el log existente ({} movimientos). "
-            "Usa --log para conservarlo.".format(movimientos),
-            file=sys.stderr,
-        )
-
-
-def _guardar_log(origen, salida, resumen, ruta):
-    """Sobrescribe el log con el resumen de la ultima ejecucion."""
-    datos = {
-        "fecha": datetime.now().isoformat(timespec="seconds"),
-        "origen": str(origen),
-        "salida": str(salida),
-        "movimientos": resumen["movimientos"],
-        "errores": resumen["errores"],
-    }
-    afirmar(
-        isinstance(datos["movimientos"], list),
-        "el log guardado no es una lista de movimientos",
-    )
-    ruta = Path(ruta)
-    ruta.parent.mkdir(parents=True, exist_ok=True)
-    with open(ruta, "w", encoding="utf-8") as archivo:
-        json.dump(datos, archivo, indent=2, ensure_ascii=False)
-
-
-def _guardar_historial(origen, salida, resumen, carpeta):
-    """Guarda una entrada nueva en el historial de logs y devuelve su ruta."""
-    carpeta = Path(carpeta)
-    carpeta.mkdir(parents=True, exist_ok=True)
-    marca = datetime.now().strftime("%Y%m%d-%H%M%S-%f")
-    ruta = carpeta / "{}.json".format(marca)
-    _guardar_log(origen, salida, resumen, ruta)
-    return ruta
-
-
-def _logs_disponibles(carpeta):
-    """Logs del historial, del mas reciente al mas antiguo."""
-    carpeta = Path(carpeta)
-    if not carpeta.is_dir():
-        return []
-    return sorted(
-        (p for p in carpeta.glob("*.json") if p.is_file()),
-        key=lambda p: p.name,
-        reverse=True,
-    )
 
 
 def _preguntar(texto, json_salida=False):
@@ -355,7 +271,7 @@ def _listar_reglas(reglas):
     return 0
 
 
-def _deshacer_un_log(ruta, simular=False):
+def _deshacer_un_log(registro, ruta, simular=False):
     """Carga y revierte un log. Devuelve (estado, resumen).
 
     estado: "ok", "missing" (no existe) o "error" (log invalido). El error
@@ -364,39 +280,14 @@ def _deshacer_un_log(ruta, simular=False):
     historial solo cuenta como fallo de ese log.
     """
     try:
-        with open(ruta, encoding="utf-8") as archivo:
-            datos = json.load(archivo)
-    except FileNotFoundError:
-        return "missing", None
-    except json.JSONDecodeError as error:
-        return "error", "log inválido {}: {}".format(ruta, error)
+        datos = registro.cargar(ruta)
+    except ConfigError as error:
+        return "error", str(error)
 
-    if not isinstance(datos, dict):
-        return "error", "el log no tiene el formato esperado: {}".format(ruta)
+    if datos is None:
+        return "missing", None
 
     return "ok", deshacer(datos, simular=simular)
-
-
-def _info_log(ruta):
-    """Resumen legible de un log del historial, o None si no se puede leer."""
-    try:
-        with open(ruta, encoding="utf-8") as archivo:
-            datos = json.load(archivo)
-    except (OSError, json.JSONDecodeError):
-        return None
-    if not isinstance(datos, dict):
-        return None
-    movimientos = datos.get("movimientos", [])
-    errores = datos.get("errores", [])
-    return {
-        "ruta": str(ruta),
-        "fichero": Path(ruta).name,
-        "fecha": datos.get("fecha", ""),
-        "origen": datos.get("origen", ""),
-        "salida": datos.get("salida", ""),
-        "movimientos": len(movimientos) if isinstance(movimientos, list) else 0,
-        "errores": len(errores) if isinstance(errores, list) else 0,
-    }
 
 
 def _detalles_deshacer(resumen, json_salida=False):
@@ -407,9 +298,9 @@ def _detalles_deshacer(resumen, json_salida=False):
         print("[!] {} -> {}".format(fallo["nombre"], fallo["error"]), file=sys.stderr)
 
 
-def _deshacer(ruta, simular=False, json_salida=False):
+def _deshacer(registro, ruta, simular=False, json_salida=False):
     """Revierte los movimientos guardados en un unico log."""
-    estado, resultado = _deshacer_un_log(ruta, simular=simular)
+    estado, resultado = _deshacer_un_log(registro, ruta, simular=simular)
     if estado == "error":
         raise ConfigError(resultado)
     if estado == "missing":
@@ -458,9 +349,10 @@ def _deshacer(ruta, simular=False, json_salida=False):
     return 1 if resumen["errores"] else 0
 
 
-def _deshacer_historial(carpeta, ultimos, simular=False, json_salida=False):
+def _deshacer_historial(registro, ultimos, simular=False, json_salida=False):
     """Revierte los `ultimos` logs del historial, del mas reciente al mas antiguo."""
-    rutas = _logs_disponibles(carpeta)[:ultimos]
+    rutas = registro.disponibles()[:ultimos]
+    carpeta = registro.carpeta
     if not rutas:
         if json_salida:
             _emitir_json(
@@ -482,7 +374,7 @@ def _deshacer_historial(carpeta, ultimos, simular=False, json_salida=False):
     for numero, ruta in enumerate(rutas, start=1):
         if not json_salida:
             print("[{}/{}] {}".format(numero, len(rutas), ruta.name))
-        estado, resultado = _deshacer_un_log(ruta, simular=simular)
+        estado, resultado = _deshacer_un_log(registro, ruta, simular=simular)
         if estado == "error":
             errores += 1
             print("[!] {}: {}".format(ruta.name, resultado), file=sys.stderr)
@@ -555,11 +447,11 @@ def _listar_logs(infos, json_salida=False, carpeta=""):
     return 0
 
 
-def _listar_historial(carpeta, ultimos, json_salida=False):
+def _listar_historial(registro, ultimos, json_salida=False):
     """Muestra los logs del historial sin revertirlos."""
-    rutas = _logs_disponibles(carpeta)[:ultimos]
-    infos = [info for info in (_info_log(ruta) for ruta in rutas) if info]
-    return _listar_logs(infos, json_salida, carpeta)
+    rutas = registro.disponibles()[:ultimos]
+    infos = [info for info in (Registro.info(ruta) for ruta in rutas) if info]
+    return _listar_logs(infos, json_salida, registro.carpeta)
 
 
 def _mostrar_movimientos(resumen, salida, etiqueta="[OK]"):
@@ -742,22 +634,20 @@ def _ejecutar(argv=None):
         if args.ultimos < 1:
             raise ErrorDeUso("--ultimos debe ser 1 o mas.")
 
+        registro = Registro.desde_config(args)
         if args.listar:
             if args.log is not None:
                 ruta = Path(args.log)
-                info = _info_log(ruta)
+                info = Registro.info(ruta)
                 return _listar_logs([info] if info else [], args.json, ruta.parent)
-            return _listar_historial(Path(args.logs_dir), args.ultimos, args.json)
+            return _listar_historial(registro, args.ultimos, args.json)
 
         if args.log is not None:
             return _deshacer(
-                Path(args.log), simular=args.simular, json_salida=args.json
+                registro, Path(args.log), simular=args.simular, json_salida=args.json
             )
         return _deshacer_historial(
-            Path(args.logs_dir),
-            args.ultimos,
-            simular=args.simular,
-            json_salida=args.json,
+            registro, args.ultimos, simular=args.simular, json_salida=args.json
         )
 
     if args.accion != "ejecutar":
@@ -770,6 +660,7 @@ def _ejecutar(argv=None):
 
     origen = Path(args.origen).resolve()
     salida = Path(args.salida).resolve()
+    registro = Registro.desde_config(args)
 
     desde = _parsear_fecha(args.desde) if args.desde is not None else None
 
@@ -801,19 +692,17 @@ def _ejecutar(argv=None):
 
     ruta_log = None
     if not simulado and (resumen["movimientos"] or resumen["errores"]):
+        aviso = lambda mensaje: print(mensaje, file=sys.stderr)  # noqa: E731
         if args.log is not None:
-            ruta_log = _resolver_log(args.log, origen, salida)
-            _avisar_sobrescritura(ruta_log)
+            ruta_log = registro.ruta_unica(args.log, origen, salida, aviso)
+            registro.avisar_sobrescritura(ruta_log, aviso)
         try:
             if ruta_log is not None:
-                _guardar_log(origen, salida, resumen, ruta_log)
+                registro.guardar(origen, salida, resumen, ruta_log)
             else:
-                ruta_log = _guardar_historial(origen, salida, resumen, args.logs_dir)
+                ruta_log = registro.guardar_historial(origen, salida, resumen)
         except OSError as error:
-            print(
-                "Aviso: no se pudo escribir el log: {}".format(error),
-                file=sys.stderr,
-            )
+            aviso("Aviso: no se pudo escribir el log: {}".format(error))
 
     total = len(resumen["organizados"]) + len(resumen["revision"])
 

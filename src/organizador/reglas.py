@@ -2,6 +2,12 @@
 
 Las asignaturas, palabras clave y temas viven en `reglas.json`. Este modulo
 solo se encarga de leerlas, validarlas y clasificar nombres de archivo.
+
+Las reglas del paquete se cargan y validan una sola vez al importar
+(`REGLAS_DEL_PAQUETE`): el JSON es inmutable durante la vida del proceso y
+releerlo en cada clasificacion seria trabajo repetido sin beneficio. Las
+reglas del usuario NO se cachean: pueden cambiar entre ejecuciones y se leen
+una vez por accion desde `reglas_efectivas`.
 """
 
 import json
@@ -9,6 +15,7 @@ import os
 import re
 import unicodedata
 from dataclasses import dataclass
+from functools import lru_cache
 from pathlib import Path
 
 from .excepciones import ConfigError
@@ -74,8 +81,14 @@ def _cargar_regla(datos, ruta, indice):
     return Regla(asignatura.strip(), aliases, tuple(temas))
 
 
+@lru_cache(maxsize=None)
 def cargar_reglas(ruta=None):
-    """Carga y valida `reglas.json`. Devuelve una tupla de Regla."""
+    """Carga y valida `reglas.json`. Devuelve una tupla de Regla.
+
+    Cacheada: el JSON del paquete es inmutable durante la vida del
+    proceso, y los ficheros de usuario/tmp no cambian mientras una
+    accion los usa. La lectura y validacion ocurre una sola vez por ruta.
+    """
     ruta = Path(ruta) if ruta is not None else Path(__file__).with_name(ARCHIVO_REGLAS)
 
     try:
@@ -105,9 +118,6 @@ def cargar_reglas(ruta=None):
     return reglas
 
 
-REGLAS = cargar_reglas()
-
-
 def ruta_reglas_usuario():
     """Ruta de las reglas del usuario (~/.config/organizador/reglas.json)."""
     base = os.environ.get("XDG_CONFIG_HOME")
@@ -120,7 +130,11 @@ def reglas_efectivas(ruta=None):
 
     - Con `ruta`: solo se cargan las reglas de ese fichero.
     - Sin `ruta`: se cargan las del usuario (si existen) y despues las del
-      paquete. Si una asignatura esta en ambas, gana la del usuario.
+      paquete (cacheadas). Si una asignatura esta en ambas, gana la del
+      usuario.
+
+    Se llama una sola vez por accion (las acciones la reciben inyectada),
+    asi que no conviene cachear aqui las reglas del usuario.
     """
     if ruta is not None:
         return cargar_reglas(ruta)
@@ -134,7 +148,7 @@ def reglas_efectivas(ruta=None):
             reglas.append(regla)
             vistas.add(regla.asignatura)
 
-    for regla in cargar_reglas():
+    for regla in REGLAS_DEL_PAQUETE:
         if regla.asignatura not in vistas:
             reglas.append(regla)
 
@@ -215,7 +229,7 @@ def clasificar(nombre_archivo, reglas=None):
     def encaja(alias):
         return _coincide(tokens, alias) or _pega(nombre_archivo, alias)
 
-    for regla in REGLAS if reglas is None else reglas:
+    for regla in REGLAS_DEL_PAQUETE if reglas is None else reglas:
         if not any(encaja(a) for a in regla.aliases):
             continue
         for tema, temas_aliases in regla.temas:
@@ -224,3 +238,7 @@ def clasificar(nombre_archivo, reglas=None):
         return regla.asignatura, ""
 
     return None
+
+
+# Unico punto donde se leen y validan las reglas del paquete, una sola vez.
+REGLAS_DEL_PAQUETE = cargar_reglas()
