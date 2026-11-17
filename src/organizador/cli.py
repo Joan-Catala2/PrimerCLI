@@ -8,7 +8,7 @@ from pathlib import Path
 from . import __version__
 from .excepciones import AccionNoValida, ConfigError, ErrorDeUso, OrganizadorError
 from .organizador import deshacer, limpiar_vacias, mover_archivo, organizar
-from .presentacion import emitir_json
+from .presentacion import emitir_json, error_json
 from .presentacion.consola import Consola
 from .registro import CARPETA_LOGS, Registro
 from .reglas import (
@@ -17,7 +17,6 @@ from .reglas import (
     reglas_efectivas,
     ruta_reglas_usuario,
 )
-
 
 CARPETA_SUGERIDA = "descargas"
 
@@ -63,12 +62,13 @@ def _mapa_temas(reglas):
     return temas
 
 
-def _revisar(salida, interactivo=False, reglas=None, json_salida=False):
+def _revisar(salida, interactivo=False, reglas=None, consola=None):
     """Lista (y opcionalmente recoloca) los archivos de <salida>/_revision."""
+    consola = consola or Consola()
     carpeta = salida / REVISION
     if not carpeta.is_dir():
-        if json_salida:
-            _emitir_json(
+        if consola.json_mode:
+            emitir_json(
                 {
                     "salida": str(salida),
                     "carpeta": str(carpeta),
@@ -81,14 +81,14 @@ def _revisar(salida, interactivo=False, reglas=None, json_salida=False):
                 }
             )
             return 0
-        print("No existe la carpeta de revisión: {}".format(carpeta))
+        consola.linea("No existe la carpeta de revisión: {}".format(carpeta))
         return 0
 
     archivos = sorted(p for p in carpeta.iterdir() if p.is_file())
 
     if not interactivo:
-        if json_salida:
-            _emitir_json(
+        if consola.json_mode:
+            emitir_json(
                 {
                     "salida": str(salida),
                     "carpeta": str(carpeta),
@@ -99,23 +99,21 @@ def _revisar(salida, interactivo=False, reglas=None, json_salida=False):
             )
             return 0
         for archivo in archivos:
-            print(archivo.name)
-        print()
-        print("Archivos a revisar: {}".format(len(archivos)))
+            consola.linea(archivo.name)
+        consola.linea()
+        consola.linea("Archivos a revisar: {}".format(len(archivos)))
         return 0
 
     asignaturas = {regla.asignatura for regla in (reglas or ())}
     temas_por_asignatura = _mapa_temas(reglas)
-    if not json_salida:
-        print("Asignaturas disponibles: {}".format(", ".join(sorted(asignaturas))))
+    consola.linea("Asignaturas disponibles: {}".format(", ".join(sorted(asignaturas))))
 
     movidos = []
     cancelado = False
     salir = False
     for numero, archivo in enumerate(archivos, start=1):
-        if not json_salida:
-            print()
-            print("[{}/{}] {}".format(numero, len(archivos), archivo.name))
+        consola.linea()
+        consola.linea("[{}/{}] {}".format(numero, len(archivos), archivo.name))
 
         sugerencia = clasificar(archivo.name, reglas)
         sug_asignatura, sug_tema = sugerencia if sugerencia else ("", "")
@@ -126,7 +124,7 @@ def _revisar(salida, interactivo=False, reglas=None, json_salida=False):
                 pregunta = pregunta.format(sug_asignatura)
             else:
                 pregunta = "Asignatura (Enter para saltar, q para salir): "
-            respuesta = _preguntar(pregunta, json_salida).strip()
+            respuesta = _preguntar(pregunta, consola).strip()
             if respuesta.lower() == "q":
                 salir = True
                 break
@@ -138,18 +136,17 @@ def _revisar(salida, interactivo=False, reglas=None, json_salida=False):
             if asignatura not in asignaturas:
                 crear = _respuesta_si(
                     '¿Crear asignatura "{}"? [s/N]: '.format(asignatura),
-                    json_salida,
+                    consola,
                 )
                 if not crear:
-                    if not json_salida:
-                        print("Asignatura no válida, se salta.")
+                    consola.linea("Asignatura no válida, se salta.")
                     continue
                 asignaturas.add(asignatura)
                 temas_por_asignatura.setdefault(asignatura, [])
 
             temas = temas_por_asignatura.get(asignatura, [])
-            if temas and not json_salida:
-                print("Temas: {}".format(", ".join(temas)))
+            if temas:
+                consola.linea("Temas: {}".format(", ".join(temas)))
 
             tema_sugerido = sug_tema if asignatura == sug_asignatura else ""
             if tema_sugerido:
@@ -158,7 +155,7 @@ def _revisar(salida, interactivo=False, reglas=None, json_salida=False):
             else:
                 pregunta_tema = "Tema (opcional, '-' para ninguno): "
 
-            respuesta = _preguntar(pregunta_tema, json_salida).strip()
+            respuesta = _preguntar(pregunta_tema, consola).strip()
             if respuesta.lower() == "q":
                 salir = True
                 break
@@ -168,19 +165,15 @@ def _revisar(salida, interactivo=False, reglas=None, json_salida=False):
                 tema = respuesta or tema_sugerido
 
             if tema and temas and tema not in temas:
-                crear = _respuesta_si(
-                    '¿Crear tema "{}"? [s/N]: '.format(tema), json_salida
-                )
+                crear = _respuesta_si('¿Crear tema "{}"? [s/N]: '.format(tema), consola)
                 if crear:
                     temas.append(tema)
                 else:
-                    if not json_salida:
-                        print("Tema no válido, se usa sin tema.")
+                    consola.linea("Tema no válido, se usa sin tema.")
                     tema = ""
         except EOFError:
-            if not json_salida:
-                print()
-                print("Entrada cancelada; se deja el resto en revisión.")
+            consola.linea()
+            consola.linea("Entrada cancelada; se deja el resto en revisión.")
             cancelado = True
             break
 
@@ -197,14 +190,13 @@ def _revisar(salida, interactivo=False, reglas=None, json_salida=False):
                 "destino": str(destino),
             }
         )
-        if not json_salida:
-            print("Movido a {}".format(destino.relative_to(salida)))
+        consola.linea("Movido a {}".format(destino.relative_to(salida)))
 
     if movidos:
         limpiar_vacias(salida)
 
-    if json_salida:
-        _emitir_json(
+    if consola.json_mode:
+        emitir_json(
             {
                 "salida": str(salida),
                 "carpeta": str(carpeta),
@@ -219,11 +211,11 @@ def _revisar(salida, interactivo=False, reglas=None, json_salida=False):
         )
         return 130 if cancelado else 0
 
-    print()
-    print("Archivos movidos: {}".format(len(movidos)))
-    print("Pendientes:       {}".format(len(archivos) - len(movidos)))
+    consola.linea()
+    consola.linea("Archivos movidos: {}".format(len(movidos)))
+    consola.linea("Pendientes:       {}".format(len(archivos) - len(movidos)))
     if salir:
-        print("Sesión terminada; se deja el resto en revisión.")
+        consola.linea("Sesión terminada; se deja el resto en revisión.")
     return 130 if cancelado else 0
 
 
@@ -232,15 +224,16 @@ def _obtener_reglas(ruta):
     return reglas_efectivas(ruta)
 
 
-def _listar_reglas(reglas):
+def _listar_reglas(reglas, consola=None):
     """Muestra las asignaturas y temas disponibles."""
+    consola = consola or Consola()
     usuario = ruta_reglas_usuario()
     if usuario.is_file():
-        print("Reglas del usuario: {}".format(usuario))
+        consola.linea("Reglas del usuario: {}".format(usuario))
     for regla in reglas:
-        print(regla.asignatura)
+        consola.linea(regla.asignatura)
         for tema, _ in regla.temas:
-            print("  - {}".format(tema))
+            consola.linea("  - {}".format(tema))
     return 0
 
 
@@ -263,22 +256,15 @@ def _deshacer_un_log(registro, ruta, simular=False):
     return "ok", deshacer(datos, simular=simular)
 
 
-def _detalles_deshacer(resumen, json_salida=False):
-    if not json_salida:
-        for movimiento in resumen["deshechos"]:
-            print("[UNDO] {} -> {}".format(movimiento["nombre"], movimiento["destino"]))
-    for fallo in resumen["errores"]:
-        print("[!] {} -> {}".format(fallo["nombre"], fallo["error"]), file=sys.stderr)
-
-
-def _deshacer(registro, ruta, simular=False, json_salida=False):
+def _deshacer(registro, ruta, simular=False, consola=None):
     """Revierte los movimientos guardados en un unico log."""
+    consola = consola or Consola()
     estado, resultado = _deshacer_un_log(registro, ruta, simular=simular)
     if estado == "error":
         raise ConfigError(resultado)
     if estado == "missing":
-        if json_salida:
-            _emitir_json(
+        if consola.json_mode:
+            emitir_json(
                 {
                     "ruta": str(ruta),
                     "existe": False,
@@ -289,7 +275,7 @@ def _deshacer(registro, ruta, simular=False, json_salida=False):
                 }
             )
             return 0
-        print("No hay log para deshacer: {}".format(ruta))
+        consola.linea("No hay log para deshacer: {}".format(ruta))
         return 0
     resumen = resultado
 
@@ -298,8 +284,8 @@ def _deshacer(registro, ruta, simular=False, json_salida=False):
         Path(ruta).unlink(missing_ok=True)
         borrado = True
 
-    if json_salida:
-        _emitir_json(
+    if consola.json_mode:
+        emitir_json(
             {
                 "ruta": str(ruta),
                 "existe": True,
@@ -311,24 +297,26 @@ def _deshacer(registro, ruta, simular=False, json_salida=False):
         )
         return 1 if resumen["errores"] else 0
 
-    _detalles_deshacer(resumen)
+    consola.deshechos(resumen)
 
-    print()
-    print("Resumen")
-    print("  Archivos devueltos:  {}".format(len(resumen["deshechos"])))
-    print("  Errores:             {}".format(len(resumen["errores"])))
+    lineas: list = [
+        ("Archivos devueltos", len(resumen["deshechos"])),
+        ("Errores", len(resumen["errores"])),
+    ]
     if simular:
-        print("  Modo:                simulación (no se ha movido nada)")
+        lineas.append(("Modo", "simulación (no se ha movido nada)"))
+    consola.resumen(lineas)
     return 1 if resumen["errores"] else 0
 
 
-def _deshacer_historial(registro, ultimos, simular=False, json_salida=False):
+def _deshacer_historial(registro, ultimos, simular=False, consola=None):
     """Revierte los `ultimos` logs del historial, del mas reciente al mas antiguo."""
+    consola = consola or Consola()
     rutas = registro.disponibles()[:ultimos]
     carpeta = registro.carpeta
     if not rutas:
-        if json_salida:
-            _emitir_json(
+        if consola.json_mode:
+            emitir_json(
                 {
                     "carpeta": str(carpeta),
                     "simulado": simular,
@@ -338,19 +326,18 @@ def _deshacer_historial(registro, ultimos, simular=False, json_salida=False):
                 }
             )
             return 0
-        print("No hay logs para deshacer en {}".format(carpeta))
+        consola.linea("No hay logs para deshacer en {}".format(carpeta))
         return 0
 
     total = 0
     errores = 0
     registros: list = []
     for numero, ruta in enumerate(rutas, start=1):
-        if not json_salida:
-            print("[{}/{}] {}".format(numero, len(rutas), ruta.name))
+        consola.linea("[{}/{}] {}".format(numero, len(rutas), ruta.name))
         estado, resultado = _deshacer_un_log(registro, ruta, simular=simular)
         if estado == "error":
             errores += 1
-            print("[!] {}: {}".format(ruta.name, resultado), file=sys.stderr)
+            consola.aviso("[!] {}: {}".format(ruta.name, resultado))
             registros.append({"ruta": str(ruta), "error": resultado})
             continue
         if estado == "missing":
@@ -358,7 +345,7 @@ def _deshacer_historial(registro, ultimos, simular=False, json_salida=False):
             continue
         resumen = resultado
 
-        _detalles_deshacer(resumen, json_salida)
+        consola.deshechos(resumen)
         total += len(resumen["deshechos"])
         errores += len(resumen["errores"])
 
@@ -375,8 +362,8 @@ def _deshacer_historial(registro, ultimos, simular=False, json_salida=False):
             }
         )
 
-    if json_salida:
-        _emitir_json(
+    if consola.json_mode:
+        emitir_json(
             {
                 "carpeta": str(carpeta),
                 "simulado": simular,
@@ -387,52 +374,54 @@ def _deshacer_historial(registro, ultimos, simular=False, json_salida=False):
         )
         return 1 if errores else 0
 
-    print()
-    print("Resumen")
-    print("  Logs procesados:     {}".format(len(rutas)))
-    print("  Archivos devueltos:  {}".format(total))
-    print("  Errores:             {}".format(errores))
+    lineas: list = [
+        ("Logs procesados", len(rutas)),
+        ("Archivos devueltos", total),
+        ("Errores", errores),
+    ]
     if simular:
-        print("  Modo:                simulación (no se ha movido nada)")
+        lineas.append(("Modo", "simulación (no se ha movido nada)"))
+    consola.resumen(lineas)
     return 1 if errores else 0
 
 
-def _listar_logs(infos, json_salida=False, carpeta=""):
+def _listar_logs(infos, consola=None, carpeta=""):
     """Muestra una lista de resumenes de logs (o su version JSON)."""
-    if json_salida:
-        _emitir_json({"carpeta": str(carpeta), "logs": infos})
+    consola = consola or Consola()
+    if consola.json_mode:
+        emitir_json({"carpeta": str(carpeta), "logs": infos})
         return 0
 
     if not infos:
-        print("No hay logs en {}".format(carpeta))
+        consola.linea("No hay logs en {}".format(carpeta))
         return 0
 
     for info in infos:
-        print(
+        consola.linea(
             "{}  {:>3} movimientos  {}".format(
                 info["fecha"] or info["fichero"],
                 info["movimientos"],
                 info["ruta"],
             )
         )
-    print()
-    print("Logs: {}".format(len(infos)))
+    consola.linea()
+    consola.linea("Logs: {}".format(len(infos)))
     return 0
 
 
-def _listar_historial(registro, ultimos, json_salida=False):
+def _listar_historial(registro, ultimos, consola=None):
     """Muestra los logs del historial sin revertirlos."""
     rutas = registro.disponibles()[:ultimos]
     infos = [info for info in (Registro.info(ruta) for ruta in rutas) if info]
-    return _listar_logs(infos, json_salida, registro.carpeta)
+    return _listar_logs(infos, consola, registro.carpeta)
 
 
-def _mostrar_movimientos(resumen, salida, etiqueta="[OK]"):
+def _mostrar_movimientos(resumen, salida, consola, etiqueta="[OK]"):
     """Muestra el detalle de los movimientos de un resumen."""
     for movimiento in resumen["movimientos"]:
         relativo = Path(movimiento["destino"]).relative_to(salida)
         marca = "[?]" if movimiento["asignatura"] == REVISION else etiqueta
-        print("{} {} -> {}".format(marca, movimiento["nombre"], relativo))
+        consola.detalle("{} {} -> {}".format(marca, movimiento["nombre"], relativo))
 
 
 def _ejecutar(argv=None):
@@ -591,16 +580,17 @@ def _ejecutar(argv=None):
     )
 
     args = parser.parse_args(argv)
+    consola = Consola.desde_config(args)
 
     if args.accion == "reglas":
-        return _listar_reglas(_obtener_reglas(args.reglas))
+        return _listar_reglas(_obtener_reglas(args.reglas), consola)
 
     if args.accion == "revisar":
         return _revisar(
             Path(args.salida).resolve(),
             args.interactivo,
             _obtener_reglas(args.reglas),
-            args.json,
+            consola,
         )
 
     if args.accion == "deshacer":
@@ -612,15 +602,15 @@ def _ejecutar(argv=None):
             if args.log is not None:
                 ruta = Path(args.log)
                 info = Registro.info(ruta)
-                return _listar_logs([info] if info else [], args.json, ruta.parent)
-            return _listar_historial(registro, args.ultimos, args.json)
+                return _listar_logs([info] if info else [], consola, ruta.parent)
+            return _listar_historial(registro, args.ultimos, consola)
 
         if args.log is not None:
             return _deshacer(
-                registro, Path(args.log), simular=args.simular, json_salida=args.json
+                registro, Path(args.log), simular=args.simular, consola=consola
             )
         return _deshacer_historial(
-            registro, args.ultimos, simular=args.simular, json_salida=args.json
+            registro, args.ultimos, simular=args.simular, consola=consola
         )
 
     if args.accion != "ejecutar":
@@ -653,8 +643,8 @@ def _ejecutar(argv=None):
     if args.confirmar and not args.simular:
         if resumen["movimientos"]:
             if not args.json and not args.seco:
-                _mostrar_movimientos(resumen, salida, "[SIM]")
-            if _confirmar(len(resumen["movimientos"]), args.json):
+                _mostrar_movimientos(resumen, salida, consola, "[SIM]")
+            if _confirmar(len(resumen["movimientos"]), consola):
                 resumen = organizar(origen, salida, simular=False, **opciones)
                 simulado = False
             else:
@@ -665,22 +655,21 @@ def _ejecutar(argv=None):
 
     ruta_log = None
     if not simulado and (resumen["movimientos"] or resumen["errores"]):
-        aviso = lambda mensaje: print(mensaje, file=sys.stderr)  # noqa: E731
         if args.log is not None:
-            ruta_log = registro.ruta_unica(args.log, origen, salida, aviso)
-            registro.avisar_sobrescritura(ruta_log, aviso)
+            ruta_log = registro.ruta_unica(args.log, origen, salida, consola.aviso)
+            registro.avisar_sobrescritura(ruta_log, consola.aviso)
         try:
             if ruta_log is not None:
                 registro.guardar(origen, salida, resumen, ruta_log)
             else:
                 ruta_log = registro.guardar_historial(origen, salida, resumen)
         except OSError as error:
-            aviso("Aviso: no se pudo escribir el log: {}".format(error))
+            consola.aviso("Aviso: no se pudo escribir el log: {}".format(error))
 
     total = len(resumen["organizados"]) + len(resumen["revision"])
 
-    if args.json:
-        _emitir_json(
+    if consola.json_mode:
+        emitir_json(
             {
                 "origen": str(origen),
                 "salida": str(salida),
@@ -699,33 +688,33 @@ def _ejecutar(argv=None):
             }
         )
         if cancelado:
-            print("Cancelado; no se ha movido nada.", file=sys.stderr)
+            consola.cancelar("Cancelado; no se ha movido nada.")
         return 0
 
     if cancelado:
-        print("Cancelado; no se ha movido nada.")
+        consola.linea("Cancelado; no se ha movido nada.")
         return 0
 
     etiqueta = "[SIM]" if simulado else "[OK]"
 
     if not args.seco:
-        _mostrar_movimientos(resumen, salida, etiqueta)
+        _mostrar_movimientos(resumen, salida, consola, etiqueta)
 
-    for fallo in resumen["errores"]:
-        print("[!] {} -> {}".format(fallo["nombre"], fallo["error"]), file=sys.stderr)
+    consola.errores(resumen)
 
-    print()
-    print("Resumen")
-    print("  Archivos procesados: {}".format(total))
-    print("  Organizados:         {}".format(len(resumen["organizados"])))
-    print("  A revisar:           {}".format(len(resumen["revision"])))
-    print("  Errores:             {}".format(len(resumen["errores"])))
-    print("  Filtrados:           {}".format(resumen["filtrados"]))
-    print("  Destino:             {}".format(salida))
+    lineas = [
+        ("Archivos procesados", total),
+        ("Organizados", len(resumen["organizados"])),
+        ("A revisar", len(resumen["revision"])),
+        ("Errores", len(resumen["errores"])),
+        ("Filtrados", resumen["filtrados"]),
+        ("Destino", salida),
+    ]
     if ruta_log is not None:
-        print("  Log:                 {}".format(ruta_log))
+        lineas.append(("Log", ruta_log))
     if simulado:
-        print("  Modo:                simulación (no se ha movido nada)")
+        lineas.append(("Modo", "simulación (no se ha movido nada)"))
+    consola.resumen(lineas)
     return 0
 
 
@@ -748,13 +737,7 @@ def main(argv=None):
         return _ejecutar(argv)
     except OrganizadorError as error:
         if _detectar_json(argv):
-            _emitir_json(
-                {
-                    "ok": False,
-                    "error": type(error).__name__,
-                    "mensaje": str(error),
-                }
-            )
+            error_json(error)
         else:
             print("Error: {}".format(error), file=sys.stderr)
         return error.codigo_salida

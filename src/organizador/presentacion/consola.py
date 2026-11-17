@@ -15,8 +15,12 @@ class Consola:
 
     @classmethod
     def desde_config(cls, args):
-        """Crea la consola a partir de la configuracion parseada."""
-        return cls(json_mode=args.json)
+        """Crea la consola a partir de la configuracion parseada.
+
+        `getattr` porque no todos los subcomandos (p. ej. `reglas`)
+        declaran `--json`; en ese caso el modo humano es el unico sentido.
+        """
+        return cls(json_mode=getattr(args, "json", False))
 
     def aviso(self, mensaje):
         """Mensaje en stderr; en modo JSON stdout debe quedar limpio."""
@@ -90,7 +94,9 @@ class Consola:
         print()
         print("Resumen")
         for clave, valor in lineas:
-            print("  {:<19}{}".format(clave + ":", valor))
+            # Las claves de 20+ caracteres (p.ej. "Archivos procesados:")
+            # quedan pegadas al valor: era el mismo alineado en la v2.2.
+            print("  {:<20}{}".format(clave + ":", valor))
 
     def linea(self, mensaje=""):
         """Mensaje humano directo a stdout (cabeceras, avisos de sesion).
