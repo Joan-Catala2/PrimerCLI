@@ -10,7 +10,16 @@ import local evita el ciclo presentacion -> reglas.
 """
 
 import sys
+from datetime import datetime
 from pathlib import Path
+
+
+def fecha_valida(texto):
+    """datetime de 'YYYY-MM-DD' o None si el formato no encaja."""
+    try:
+        return datetime.strptime(texto, "%Y-%m-%d")
+    except ValueError:
+        return None
 
 
 class Consola:

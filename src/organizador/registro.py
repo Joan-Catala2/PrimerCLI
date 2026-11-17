@@ -103,9 +103,12 @@ class Registro:
             reverse=True,
         )
 
-    @staticmethod
-    def info(ruta):
-        """Resumen legible de un log, o None si no se puede leer."""
+    def info(self, ruta):
+        """Resumen legible de un log, o None si no se puede leer.
+
+        Metodo de instancia, no static: la accion trabaja con un registro
+        concreto y no debe importar la clase para consultar un log.
+        """
         try:
             with open(ruta, encoding="utf-8") as archivo:
                 datos = json.load(archivo)
