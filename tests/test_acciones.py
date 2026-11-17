@@ -97,9 +97,7 @@ def test_reglas_corruptas_falla_antes_de_cualquier_effeto(tmp_path):
     ruta.write_text("{no", encoding="utf-8")
 
     with pytest.raises(ConfigError, match="JSON invalido"):
-        Acciones.desde_config(
-            _args(accion="reglas", reglas=str(ruta)), _consola()
-        )
+        Acciones.desde_config(_args(accion="reglas", reglas=str(ruta)), _consola())
     assert list(tmp_path.iterdir()) == [ruta]
 
 
@@ -127,9 +125,7 @@ def test_ejecutar_reusa_las_reglas_ya_cargadas(tmp_path):
     """La fabrica resuelve las dependencias una vez y las pasa dentro."""
     ruta = tmp_path / "reglas.json"
     ruta.write_text(
-        json.dumps(
-            [{"asignatura": "X", "aliases": ["x"], "temas": []}]
-        ),
+        json.dumps([{"asignatura": "X", "aliases": ["x"], "temas": []}]),
         encoding="utf-8",
     )
     accion = Acciones.desde_config(
