@@ -3,6 +3,10 @@
 Un modo (humano o JSON) decide donde va cada mensaje: en humano, el detalle
 y los avisos van por stdout/stderr normal; en JSON, stdout esta reservado
 para el documento, asi que preguntas y avisos viajan por stderr.
+
+`movimientos` importa REVISION dentro del metodo (no arriba): presentar
+filas y definir la marca "_revision" es responsabilidad de las reglas, y el
+import local evita el ciclo presentacion -> reglas.
 """
 
 import sys
@@ -33,10 +37,6 @@ class Consola:
         else:
             print(mensaje)
 
-    def detalle(self, mensaje=""):
-        """Alias historico de `linea`: detalle de movimiento por archivo."""
-        self.linea(mensaje)
-
     def preguntar(self, texto):
         """Pide un dato; en modo JSON el enunciado va a stderr."""
         if self.json_mode:
@@ -64,16 +64,24 @@ class Consola:
         respuesta = self.preguntar(texto)
         return respuesta.strip().lower() in {"s", "si", "sí", "y", "yes"}
 
+    def error_humano(self, error):
+        """Error previsible como mensaje humano, sin traceback."""
+        print("Error: {}".format(error), file=sys.stderr)
+
     # --- Presentacion de resumenes -------------------------------------
 
-    def movimientos(self, resumen, salida, etiqueta="[OK]", marca_revision="[?]"):
-        """Muestra el detalle de los movimientos de un resumen."""
+    def movimientos(self, resumen, salida, etiqueta="[OK]"):
+        """Muestra el detalle de los movimientos de un resumen.
+
+        `resumen` es el dict de `organizador.organizar`; las filas de
+        `_revision` se marcan con [?] en vez de con la etiqueta normal.
+        """
         from organizador.reglas import REVISION
 
         for movimiento in resumen["movimientos"]:
             relativo = Path(movimiento["destino"]).relative_to(salida)
-            marca = marca_revision if movimiento["asignatura"] == REVISION else etiqueta
-            self.detalle("{} {} -> {}".format(marca, movimiento["nombre"], relativo))
+            marca = "[?]" if movimiento["asignatura"] == REVISION else etiqueta
+            self.linea("{} {} -> {}".format(marca, movimiento["nombre"], relativo))
 
     def deshechos(self, resumen):
         """Muestra los archivos devueltos por un deshacer."""

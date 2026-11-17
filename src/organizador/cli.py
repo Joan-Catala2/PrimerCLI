@@ -418,10 +418,7 @@ def _listar_historial(registro, ultimos, consola=None):
 
 def _mostrar_movimientos(resumen, salida, consola, etiqueta="[OK]"):
     """Muestra el detalle de los movimientos de un resumen."""
-    for movimiento in resumen["movimientos"]:
-        relativo = Path(movimiento["destino"]).relative_to(salida)
-        marca = "[?]" if movimiento["asignatura"] == REVISION else etiqueta
-        consola.detalle("{} {} -> {}".format(marca, movimiento["nombre"], relativo))
+    consola.movimientos(resumen, salida, etiqueta)
 
 
 def _ejecutar(argv=None):
@@ -739,7 +736,7 @@ def main(argv=None):
         if _detectar_json(argv):
             error_json(error)
         else:
-            print("Error: {}".format(error), file=sys.stderr)
+            Consola().error_humano(error)
         return error.codigo_salida
 
 
