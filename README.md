@@ -139,6 +139,24 @@ Resumen
   Destino:             /ruta/al/proyecto/Organizado
 ```
 
+## Arquitectura (v2.3+)
+
+```
+cli.py            parser argparse + despacho (sin logica, sin E/S)
+acciones/         una clase por comando + fabrica Acciones.desde_config
+presentacion/     Consola (humano/JSON) — unica capa que imprime
+registro.py       historial de logs (clase Registro)
+organizador.py    motor: clasifica y mueve
+reglas.py         carga/valida reglas.json y clasifica por nombre
+excepciones.py    OrganizadorError y amigos: errores humanos sin traceback
+```
+
+Cada accion se construye con `desde_config(args, consola)`, una fabrica que
+resuelve dependencias y rechaza configuraciones imposibles antes de tocar
+el disco. Anadir una accion nueva = 1 clase + 1 linea en `Acciones`. El
+porqué de este diseno (y del JSON de reglas) esta justificado en
+`docs/adr/`.
+
 ## Cómo clasifica
 
 1. Normaliza el nombre del archivo (minúsculas, sin tildes, `_`/`-`/`.`
