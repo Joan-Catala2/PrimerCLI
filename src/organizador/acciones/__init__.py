@@ -6,15 +6,18 @@ a partir de los argumentos ya parseados: aqui es donde se deciden las
 dependencias (reglas efectivas, registro, consola) y se cargan una sola vez
 aunque crezcan los comandos.
 
-Anadir una accion nueva (p. ej. una de IA en la v2.4) es: 1 clase nueva +
-1 linea en el registro. Ni el parser, ni el motor, ni la consola se tocan.
+Anadir una accion nueva (las de IA de la v2.4 son el ejemplo) es: 1 clase
+nueva + 1 linea en el registro. Ni el motor, ni la consola se tocan; el
+parser solo aprende las banderas nuevas del comando.
 """
 
 from .base import Accion
 from .deshacer import AccionDeshacer
 from .ejecutar import AccionEjecutar
+from .explicar import AccionExplicar
 from .reglas import AccionReglas
 from .revisar import AccionRevisar
+from .sugerir import AccionSugerir
 
 __all__ = ["Accion", "Acciones"]
 
@@ -27,6 +30,8 @@ class Acciones:
         "revisar": AccionRevisar,
         "deshacer": AccionDeshacer,
         "reglas": AccionReglas,
+        "sugerir": AccionSugerir,
+        "explicar": AccionExplicar,
     }
 
     @staticmethod

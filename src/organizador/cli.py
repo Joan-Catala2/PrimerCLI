@@ -173,6 +173,61 @@ def _construir_parser():
         help="fichero de reglas a usar (sustituye a las del paquete)",
     )
 
+    sugerir = sub.add_parser(
+        "sugerir",
+        help="propone destinos para _revision con IA o con las reglas locales",
+    )
+    sugerir.add_argument(
+        "--salida",
+        default="Organizado",
+        help="carpeta de destino (por defecto: %(default)s)",
+    )
+    sugerir.add_argument(
+        "--reglas",
+        default=None,
+        help="fichero de reglas a usar (sustituye a las del paquete)",
+    )
+    sugerir.add_argument(
+        "--logs-dir",
+        default=CARPETA_LOGS,
+        help="carpeta del historial si se aplican propuestas",
+    )
+    sugerir.add_argument(
+        "--aplicar",
+        action="store_true",
+        help="mueve las propuestas despues de confirmar (requiere --confirmar)",
+    )
+    sugerir.add_argument(
+        "--confirmar",
+        action="store_true",
+        help="muestra el plan y pide confirmación antes de mover",
+    )
+    sugerir.add_argument(
+        "--json",
+        action="store_true",
+        help="emite las propuestas en JSON (sin salida humana)",
+    )
+
+    explicar = sub.add_parser(
+        "explicar", help="explica por qué un nombre acaba en un destino"
+    )
+    explicar.add_argument("nombre", help="nombre del archivo (o su ruta)")
+    explicar.add_argument(
+        "--salida",
+        default="Organizado",
+        help="carpeta de destino (por defecto: %(default)s)",
+    )
+    explicar.add_argument(
+        "--reglas",
+        default=None,
+        help="fichero de reglas a usar (sustituye a las del paquete)",
+    )
+    explicar.add_argument(
+        "--json",
+        action="store_true",
+        help="emite la explicación en JSON (sin salida humana)",
+    )
+
     return parser
 
 

@@ -41,6 +41,14 @@ class ErrorDeSistema(OrganizadorError):
     """Fallo del sistema operativo no atribuible a un solo archivo."""
 
 
+class IAIndisponible(OrganizadorError):
+    """El proveedor de IA no responde o devuelve un formato inesperado.
+
+    Las acciones de IA capturan este error y siguen con las reglas locales:
+    la falta de red o de configuración nunca rompe el comando.
+    """
+
+
 def afirmar(condicion, mensaje):
     """Aserción de *desarrollo* que sobrevive a `python -O`.
 

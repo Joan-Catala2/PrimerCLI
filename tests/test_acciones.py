@@ -15,8 +15,10 @@ from organizador.acciones import Acciones
 from organizador.acciones.base import Accion
 from organizador.acciones.deshacer import AccionDeshacer
 from organizador.acciones.ejecutar import AccionEjecutar
+from organizador.acciones.explicar import AccionExplicar
 from organizador.acciones.reglas import AccionReglas
 from organizador.acciones.revisar import AccionRevisar
+from organizador.acciones.sugerir import AccionSugerir
 from organizador.excepciones import (
     AccionNoValida,
     ConfigError,
@@ -45,6 +47,8 @@ def _args(**datos):
         interactivo=False,
         ultimos=1,
         listar=False,
+        aplicar=False,
+        nombre="ejemplo.pdf",
     )
     base.update(datos)
     return argparse.Namespace(**base)
@@ -63,6 +67,8 @@ def test_desde_config_devuelve_la_accion_de_cada_nombre():
         "revisar": AccionRevisar,
         "deshacer": AccionDeshacer,
         "reglas": AccionReglas,
+        "sugerir": AccionSugerir,
+        "explicar": AccionExplicar,
     }
     for nombre, clase in esperadas.items():
         accion = Acciones.desde_config(_args(accion=nombre), _consola())
