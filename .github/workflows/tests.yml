@@ -9,6 +9,8 @@ jobs:
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
+      - name: Sin claves en el repo
+        run: python3 scripts/check_secretos.py $(git ls-files)
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"

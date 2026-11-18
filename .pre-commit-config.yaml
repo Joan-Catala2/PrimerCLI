@@ -8,6 +8,11 @@ repos:
       - id: check-toml
   - repo: local
     hooks:
+      - id: sin-claves
+        name: sin claves reales
+        entry: python3 scripts/check_secretos.py
+        language: system
+        types: [text]
       - id: ruff
         name: ruff
         entry: ruff check --fix

@@ -218,26 +218,91 @@ def _pega(nombre_archivo, alias):
     return False
 
 
+def _primera_coincidencia(nombre_archivo, aliases, tokens):
+    """Devuelve (alias, tipo) del primero que encaja, o None."""
+    for alias in aliases:
+        if _coincide(tokens, alias):
+            return alias, "palabra completa"
+        if _pega(nombre_archivo, alias):
+            return alias, "texto pegado"
+    return None
+
+
+def explicar_match(nombre_archivo, reglas=None):
+    """Detalla por qué un nombre encaja con una regla, o devuelve None.
+
+    Es la misma decision que toma `clasificar`, pero conserva el alias y el
+    tipo de coincidencia. Lo usan las acciones `explicar` y `sugerir` cuando
+    no hay proveedor de IA: la respuesta sigue siendo útil y auditable.
+    """
+    tokens = _tokens(nombre_archivo)
+    usadas = REGLAS_DEL_PAQUETE if reglas is None else reglas
+
+    for regla in usadas:
+        asignatura_match = _primera_coincidencia(nombre_archivo, regla.aliases, tokens)
+        if asignatura_match is None:
+            continue
+        alias_asignatura, tipo_asignatura = asignatura_match
+
+        for tema, aliases_tema in regla.temas:
+            tema_match = _primera_coincidencia(nombre_archivo, aliases_tema, tokens)
+            if tema_match is not None:
+                alias_tema, tipo_tema = tema_match
+                razon = (
+                    "El alias '{}' de {} encaja por {} en '{}', y el alias '{}' "
+                    "del tema {} también encaja por {}.".format(
+                        alias_asignatura,
+                        regla.asignatura,
+                        tipo_asignatura,
+                        nombre_archivo,
+                        alias_tema,
+                        tema,
+                        tipo_tema,
+                    )
+                )
+                return {
+                    "asignatura": regla.asignatura,
+                    "tema": tema,
+                    "alias": alias_tema,
+                    "alias_asignatura": alias_asignatura,
+                    "alias_tema": alias_tema,
+                    "tipo": tipo_tema,
+                    "razon": razon,
+                }
+
+        return {
+            "asignatura": regla.asignatura,
+            "tema": "",
+            "alias": alias_asignatura,
+            "alias_asignatura": alias_asignatura,
+            "alias_tema": "",
+            "tipo": tipo_asignatura,
+            "razon": (
+                "El alias '{}' de {} encaja por {} en '{}'; ningún alias de "
+                "tema encaja, así que se clasifica sin tema.".format(
+                    alias_asignatura,
+                    regla.asignatura,
+                    tipo_asignatura,
+                    nombre_archivo,
+                )
+            ),
+        }
+
+    return None
+
+
 def clasificar(nombre_archivo, reglas=None):
     """Devuelve (asignatura, tema) o None si no se puede clasificar.
 
     `reglas` permite clasificar con una tupla de Regla distinta a la del
-    paquete (por ejemplo, reglas personalizadas del usuario).
+    paquete (por ejemplo, reglas personalizadas del usuario). Comparte el
+    emparejamiento con `explicar_match` para que explicar y clasificar nunca
+    se contradigan.
     """
-    tokens = _tokens(nombre_archivo)
-
-    def encaja(alias):
-        return _coincide(tokens, alias) or _pega(nombre_archivo, alias)
-
-    for regla in REGLAS_DEL_PAQUETE if reglas is None else reglas:
-        if not any(encaja(a) for a in regla.aliases):
-            continue
-        for tema, temas_aliases in regla.temas:
-            if any(encaja(a) for a in temas_aliases):
-                return regla.asignatura, tema
-        return regla.asignatura, ""
-
-    return None
+    coincidencia = explicar_match(nombre_archivo, reglas)
+    if coincidencia is None:
+        return None
+    return coincidencia["asignatura"], coincidencia["tema"]
 
 
 # Unico punto donde se leen y validan las reglas del paquete, una sola vez.

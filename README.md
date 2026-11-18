@@ -42,6 +42,9 @@ organizador revisar [--salida Organizado] [--interactivo] [--json]
 organizador deshacer [--logs-dir carpeta] [--ultimos N] [--listar]
                      [--simular] [--json] [--log ruta.json]
 organizador reglas [--reglas ruta.json]
+organizador sugerir [--salida Organizado] [--reglas ruta.json]
+                    [--logs-dir carpeta] [--aplicar --confirmar] [--json]
+organizador explicar NOMBRE [--salida Organizado] [--reglas ruta.json] [--json]
 organizador --version
 ```
 
@@ -69,6 +72,11 @@ organizador --version
   Enter acepta la sugerencia, `-` quita el tema y `q` termina. Si el nombre
   no existe en las reglas, pregunta si quieres crearlo. Si se cancela la
   entrada (Ctrl+D/EOF) no se pierde nada.
+- `sugerir`: propone asignatura y tema para los archivos de `_revision`.
+  Por defecto **solo propone**; `--aplicar` exige `--confirmar` para mover
+  y deja un log deshacible. Sin IA configurada usa las reglas del JSON.
+- `explicar`: dice por qué un nombre acaba en una asignatura/tema (alias
+  encontrado y tipo de coincidencia), con una frase de IA si está activa.
 - `deshacer`: revierte el último log del historial. Con `--ultimos N`
   revierte los N más recientes. `--listar` muestra el historial sin revertir
   y `--simular` previsualiza el deshacer sin mover ni borrar logs. También
@@ -139,7 +147,7 @@ Resumen
   Destino:             /ruta/al/proyecto/Organizado
 ```
 
-## Arquitectura (v2.3+)
+## Arquitectura (v2.4+)
 
 ```
 cli.py            parser argparse + despacho (sin logica, sin E/S)
@@ -148,14 +156,15 @@ presentacion/     Consola (humano/JSON) — unica capa que imprime
 registro.py       historial de logs (clase Registro)
 organizador.py    motor: clasifica y mueve
 reglas.py         carga/valida reglas.json y clasifica por nombre
+proveedor/        IA opcional (HTTP) + fallback local; clave solo en env
 excepciones.py    OrganizadorError y amigos: errores humanos sin traceback
 ```
 
 Cada accion se construye con `desde_config(args, consola)`, una fabrica que
 resuelve dependencias y rechaza configuraciones imposibles antes de tocar
-el disco. Anadir una accion nueva = 1 clase + 1 linea en `Acciones`. El
-porqué de este diseno (y del JSON de reglas) esta justificado en
-`docs/adr/`.
+el disco. El proveedor de IA se construye con `ProveedorIA.desde_env()`.
+Anadir una accion nueva = 1 clase + 1 linea en `Acciones`. El porqué de
+este diseno, del JSON de reglas y de la IA esta justificado en `docs/adr/`.
 
 ## Cómo clasifica
 
@@ -170,6 +179,26 @@ porqué de este diseno (y del JSON de reglas) esta justificado en
    `Organizado/Asignatura`.
 4. Si no detecta ninguna asignatura, lo mueve a `Organizado/_revision`.
 5. Nunca sobreescribe: si el destino ya existe, añade `-1`, `-2`, ...
+
+### IA opcional (v2.4)
+
+`sugerir` y `explicar` funcionan **sin configurar nada**: usan las reglas
+del ADR-001 y marcan la respuesta con `fuente: heuristica`. Si quieres una
+frase de un modelo, exporta las tres variables antes de ejecutar:
+
+```bash
+export ORGANIZADOR_API_KEY=...            # nunca la escribas en un fichero del repo
+export ORGANIZADOR_IA_URL=...             # endpoint compatible con chat completions
+export ORGANIZADOR_IA_MODELO=...          # modelo de tu proveedor
+organizador sugerir --salida Organizado
+organizador explicar trabajosql.pdf
+```
+
+Puedes copiar `.env.example` como plantilla, pero la CLI **no lee** `.env`:
+solo variables de entorno. Si la red falla o la respuesta no es JSON, la
+CLI avisa por stderr, usa las reglas locales y devuelve código 0. Las
+respuestas de IA se validan contra las asignaturas/temas de `reglas.json`.
+Detalles: `docs/adr/003-proveedor-ia.md`.
 
 ### Ejemplos de nombres de archivo
 
