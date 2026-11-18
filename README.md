@@ -4,6 +4,9 @@ CLI que organiza archivos descargados (apuntes, PDFs, enunciados...) en
 carpetas por **asignatura** y **tema**, usando únicamente el nombre del
 archivo.
 
+Documentación: [historial de releases](RELEASES.md) ·
+[auditoría de pruebas](docs/auditoria-tests.md).
+
 ```
 Organizado/
 ├── BaseDeDatos/
