@@ -8,7 +8,8 @@ cronología `2.x` ya documentada (`organizador --version` muestra `2.4.0`).
 
 - **Fecha**: 2026-11-18
 - **Tag**: `v1.0`
-- **Commit**: `f0b9305`
+- **Base técnica**: `f0b9305` (código y auditoría previos a esta nota); el tag
+  `v1.0` apunta al commit de fusión de esta release.
 - **Paquete**: `organizador` 2.4.0
 - **Python**: 3.8+ (CI verificada en 3.10, 3.11, 3.12 y 3.13)
 
