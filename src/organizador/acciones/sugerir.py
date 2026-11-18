@@ -9,7 +9,7 @@ reglas locales; el resto de comandos no depende de la IA.
 from pathlib import Path
 
 from ..excepciones import ErrorDeUso, IAIndisponible
-from ..organizador import limpiar_vacias, mover_archivo
+from ..organizador import mover_archivo
 from ..proveedor import ProveedorHeuristico, ProveedorIA
 from ..reglas import REVISION
 from .base import Accion
@@ -127,7 +127,6 @@ class AccionSugerir(Accion):
             )
 
         if aplicados:
-            limpiar_vacias(self.salida)
             self._guardar_log(aplicados)
         return aplicados, errores
 
