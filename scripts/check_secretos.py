@@ -12,6 +12,7 @@ from pathlib import Path
 PATRONES = (
     re.compile(r"sk-[A-Za-z0-9_-]{16,}"),
     re.compile(r"gh[pousr]_[A-Za-z0-9]{20,}"),
+    re.compile(r"github_pat_[A-Za-z0-9_]{20,}"),
     re.compile(r"AIza[0-9A-Za-z_-]{20,}"),
 )
 

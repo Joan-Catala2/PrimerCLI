@@ -9,6 +9,7 @@ import json
 
 import pytest
 
+from organizador import cli
 from organizador.acciones import Acciones
 from organizador.acciones.sugerir import AccionSugerir
 from organizador.excepciones import ErrorDeUso, IAIndisponible
@@ -46,6 +47,14 @@ class ConsolaQueConfirma(Consola):
 class ConsolaQueRechaza(Consola):
     def confirmar(self, total):
         return False
+
+
+class ConsolaJsonQueConfirma(Consola):
+    def __init__(self):
+        super().__init__(json_mode=True)
+
+    def confirmar(self, total):
+        return True
 
 
 def _preparar(tmp_path, proveedor, aplicar=False, confirmar=False, consola=None):
@@ -176,3 +185,124 @@ def test_aplicar_rechazado_no_mueve_nada(tmp_path):
 
     assert accion.ejecutar() == 0
     assert (revision / "trabajosql.pdf").is_file()
+
+
+def test_sugerir_aplicado_se_puede_deshacer(tmp_path, monkeypatch, capsys):
+    accion, _, revision = _preparar(
+        tmp_path,
+        ProveedorFalso([_sugerencia()]),
+        aplicar=True,
+        confirmar=True,
+        consola=ConsolaQueConfirma(),
+    )
+    assert accion.ejecutar() == 0
+
+    monkeypatch.chdir(tmp_path)
+    codigo = cli.main(["deshacer", "--logs-dir", str(tmp_path / "logs")])
+
+    assert codigo == 0
+    assert (revision / "trabajosql.pdf").is_file()
+    assert "[UNDO]" in capsys.readouterr().out
+
+
+def test_sin_propuestas_aplicar_no_mueve_ni_escribe_log(tmp_path):
+    sin_destino = Sugerencia(
+        nombre="trabajosql.pdf", fuente="ia", razon="sin propuesta fiable"
+    )
+    accion, _, revision = _preparar(
+        tmp_path,
+        ProveedorFalso([sin_destino]),
+        aplicar=True,
+        confirmar=True,
+        consola=ConsolaQueConfirma(),
+    )
+
+    assert accion.ejecutar() == 0
+    assert (revision / "trabajosql.pdf").is_file()
+    assert not list((tmp_path / "logs").glob("*.json"))
+
+
+def test_aplicar_sin_tema_mueve_a_la_raiz_de_la_asignatura(tmp_path):
+    sin_tema = Sugerencia(
+        nombre="trabajosql.pdf",
+        asignatura="BaseDeDatos",
+        tema="",
+        confianza=0.7,
+        fuente="ia",
+        razon="solo asignatura",
+    )
+    accion, salida, _ = _preparar(
+        tmp_path,
+        ProveedorFalso([sin_tema]),
+        aplicar=True,
+        confirmar=True,
+        consola=ConsolaQueConfirma(),
+    )
+
+    assert accion.ejecutar() == 0
+    assert (salida / "BaseDeDatos" / "trabajosql.pdf").is_file()
+
+
+def test_error_al_mover_se_cuenta_en_json(tmp_path, monkeypatch, capsys):
+    def fallar(*args, **kwargs):
+        raise OSError("permiso denegado")
+
+    monkeypatch.setattr("organizador.acciones.sugerir.mover_archivo", fallar)
+    accion, _, revision = _preparar(
+        tmp_path,
+        ProveedorFalso([_sugerencia()]),
+        aplicar=True,
+        confirmar=True,
+        consola=ConsolaJsonQueConfirma(),
+    )
+
+    assert accion.ejecutar() == 0
+    datos = json.loads(capsys.readouterr().out)
+    assert datos["errores"][0]["error"] == "permiso denegado"
+    assert (revision / "trabajosql.pdf").is_file()
+
+
+def test_error_al_escribir_el_log_avisa_y_no_rompe(tmp_path, capsys):
+    def fallar(*args, **kwargs):
+        raise OSError("disco lleno")
+
+    accion, salida, _ = _preparar(
+        tmp_path,
+        ProveedorFalso([_sugerencia()]),
+        aplicar=True,
+        confirmar=True,
+        consola=ConsolaQueConfirma(),
+    )
+    accion.registro.guardar_historial = fallar
+
+    assert accion.ejecutar() == 0
+    assert (salida / "BaseDeDatos" / "SQL" / "trabajosql.pdf").is_file()
+    assert "no se pudo escribir el log" in capsys.readouterr().err
+
+
+def test_sugerir_sin_carpeta_en_humano_avisa(tmp_path, capsys):
+    accion = AccionSugerir(
+        consola=Consola(),
+        salida=tmp_path / "NoExiste",
+        reglas=REGLAS,
+        proveedor=ProveedorFalso(),
+        registro=Registro(tmp_path / "logs"),
+    )
+
+    assert accion.ejecutar() == 0
+    assert "No existe la carpeta de revisión" in capsys.readouterr().out
+
+
+def test_sugerir_carpeta_vacia_en_humano_avisa(tmp_path, capsys):
+    salida = tmp_path / "Organizado"
+    (salida / "_revision").mkdir(parents=True)
+    accion = AccionSugerir(
+        consola=Consola(),
+        salida=salida,
+        reglas=REGLAS,
+        proveedor=ProveedorFalso(),
+        registro=Registro(tmp_path / "logs"),
+    )
+
+    assert accion.ejecutar() == 0
+    assert "No hay archivos pendientes" in capsys.readouterr().out

@@ -265,6 +265,12 @@ pre-commit run --all-files
 La CI ejecuta `ruff`, `mypy` y los tests con cobertura mínima del 85% en
 Python 3.10–3.13.
 
+### Auditoría de pruebas
+
+El informe `docs/auditoria-tests.md` documenta la cobertura actual (94,22%),
+el mapa requisito → prueba → caso feo, la sensibilidad a regresiones y los
+límites conocidos de la suite.
+
 ## Límites
 
 - No lee el contenido de los PDF ni usa OCR: solo el nombre.

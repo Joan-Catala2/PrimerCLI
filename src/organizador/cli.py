@@ -232,8 +232,15 @@ def _construir_parser():
 
 
 def _detectar_json(argv):
-    """True si el argv pide `--json`, aunque todavia no este parseado."""
-    return argv is not None and "--json" in argv
+    """True si el argv pide `--json`, aunque todavia no este parseado.
+
+    La entrada real (`organizador ...` y `python -m organizador ...`) llama a
+    `main()` sin argumentos: argparse lee `sys.argv`, asi que aqui hay que
+    hacer lo mismo para que un error en modo JSON siga siendo JSON.
+    """
+    if argv is None:
+        argv = sys.argv[1:]
+    return "--json" in argv
 
 
 def main(argv=None):

@@ -189,3 +189,58 @@ def test_api_explica_con_respuesta_valida():
     assert explicacion.texto == "Por el alias sql en el nombre."
     assert explicacion.fuente == "ia"
     assert "sql" in explicacion.razon_local
+
+
+def test_api_acepta_json_entre_backticks():
+    contenido = '```json\n{"texto": "Por el alias sql."}\n```'
+    abrir, _ = _abrir_falso(_respuesta_ia(contenido))
+    proveedor = ProveedorApi(
+        CLAVE, "https://ejemplo.invalid/v1/chat", "modelo-de-prueba", abrir=abrir
+    )
+
+    explicacion = proveedor.explicar("trabajosql.pdf", "BaseDeDatos/SQL", REGLAS)
+    assert explicacion.texto == "Por el alias sql."
+    assert explicacion.fuente == "ia"
+
+
+def test_api_respuesta_sin_choices_lanza_error():
+    abrir, _ = _abrir_falso({})
+    proveedor = ProveedorApi(
+        CLAVE, "https://ejemplo.invalid/v1/chat", "modelo-de-prueba", abrir=abrir
+    )
+
+    with pytest.raises(IAIndisponible, match="formato esperado"):
+        proveedor.sugerir(["trabajosql.pdf"], REGLAS)
+
+
+def test_api_sugerencia_ausente_cae_al_fallback():
+    abrir, _ = _abrir_falso(_respuesta_ia({"sugerencias": []}))
+    proveedor = ProveedorApi(
+        CLAVE, "https://ejemplo.invalid/v1/chat", "modelo-de-prueba", abrir=abrir
+    )
+
+    sugerencia = proveedor.sugerir(["trabajosql.pdf"], REGLAS)[0]
+    assert sugerencia.asignatura == "BaseDeDatos"
+    assert sugerencia.fuente == "heuristica"
+
+
+def test_api_confianza_imposible_usa_la_local():
+    contenido = {
+        "sugerencias": [
+            {
+                "nombre": "trabajosql.pdf",
+                "asignatura": "BaseDeDatos",
+                "tema": "SQL",
+                "confianza": 99,
+                "razon": "confianza imposible",
+            }
+        ]
+    }
+    abrir, _ = _abrir_falso(_respuesta_ia(contenido))
+    proveedor = ProveedorApi(
+        CLAVE, "https://ejemplo.invalid/v1/chat", "modelo-de-prueba", abrir=abrir
+    )
+
+    sugerencia = proveedor.sugerir(["trabajosql.pdf"], REGLAS)[0]
+    assert sugerencia.confianza == 0.6
+    assert sugerencia.fuente == "ia"
