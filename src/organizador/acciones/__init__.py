@@ -11,6 +11,7 @@ nueva + 1 linea en el registro. Ni el motor, ni la consola se tocan; el
 parser solo aprende las banderas nuevas del comando.
 """
 
+from .aplicar import AccionAplicar
 from .base import Accion
 from .deshacer import AccionDeshacer
 from .ejecutar import AccionEjecutar
@@ -32,6 +33,7 @@ class Acciones:
         "reglas": AccionReglas,
         "sugerir": AccionSugerir,
         "explicar": AccionExplicar,
+        "aplicar": AccionAplicar,
     }
 
     @staticmethod

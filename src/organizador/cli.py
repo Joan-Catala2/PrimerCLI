@@ -228,6 +228,47 @@ def _construir_parser():
         help="emite la explicación en JSON (sin salida humana)",
     )
 
+    aplicar = sub.add_parser(
+        "aplicar",
+        help="aprende alias de los archivos de _revision y, opcionalmente, "
+        "reorganiza con ellos",
+    )
+    aplicar.add_argument(
+        "--salida",
+        default="Organizado",
+        help="carpeta de destino (por defecto: %(default)s)",
+    )
+    aplicar.add_argument(
+        "--reglas",
+        default=None,
+        help="fichero de reglas a usar (sustituye a las del paquete)",
+    )
+    aplicar.add_argument(
+        "--logs-dir",
+        default=CARPETA_LOGS,
+        help="carpeta del historial de logs si se reorganiza (por defecto: %(default)s)",
+    )
+    aplicar.add_argument(
+        "--confirmar",
+        action="store_true",
+        help="pregunta alias a alias y guarda los aceptados en las reglas del usuario",
+    )
+    aplicar.add_argument(
+        "--reorganizar",
+        action="store_true",
+        help="tras guardar alias, mueve lo clasificable (requiere --confirmar)",
+    )
+    aplicar.add_argument(
+        "--seco",
+        action="store_true",
+        help="solo muestra el resumen final, sin detalle",
+    )
+    aplicar.add_argument(
+        "--json",
+        action="store_true",
+        help="emite las propuestas y el resultado en JSON (sin salida humana)",
+    )
+
     return parser
 
 

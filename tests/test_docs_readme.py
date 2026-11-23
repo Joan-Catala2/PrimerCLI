@@ -13,8 +13,16 @@ from organizador.cli import _construir_parser
 RAIZ = Path(__file__).resolve().parents[1]
 README = RAIZ / "README.md"
 
-# Los seis comandos que debe documentar el README (y los que expone argparse).
-COMANDOS = ("ejecutar", "revisar", "deshacer", "reglas", "sugerir", "explicar")
+# Los siete comandos que debe documentar el README (y los que expone argparse).
+COMANDOS = (
+    "ejecutar",
+    "revisar",
+    "deshacer",
+    "reglas",
+    "sugerir",
+    "explicar",
+    "aplicar",
+)
 
 
 def _subcomandos_parser():
@@ -26,7 +34,7 @@ def _subcomandos_parser():
     raise AssertionError("el parser no declara subcomandos")
 
 
-def test_parser_expon_los_seis_comandos():
+def test_parser_expone_los_comandos_del_readme():
     assert _subcomandos_parser() == set(COMANDOS)
 
 
@@ -49,3 +57,24 @@ def test_readme_no_promete_variables_de_entorno_inexistentes():
         "ORGANIZADOR_IA_URL",
         "ORGANIZADOR_IA_MODELO",
     }
+
+
+def test_readme_no_documenta_banderas_fantasma():
+    """Toda bandera larga del bloque de uso existe en algún subparser."""
+    parser = _construir_parser()
+    reales = set()
+    for accion in parser._actions:
+        if getattr(accion, "choices", None) and "accion" in str(
+            getattr(accion, "dest", "")
+        ):
+            for sub in accion.choices.values():
+                reales.update(
+                    o for o in sub._option_string_actions if o.startswith("--")
+                )
+    reales.update(o for o in parser._option_string_actions if o.startswith("--"))
+    bloque = re.search(
+        r"```bash\n(organizador.*?)\n```", README.read_text(encoding="utf-8"), re.S
+    )
+    assert bloque, "el README no tiene el bloque de uso"
+    citadas = set(re.findall(r"(--[a-z][a-z0-9-]+)", bloque.group(1)))
+    assert citadas <= reales, f"banderas fantasma en el README: {citadas - reales}"
