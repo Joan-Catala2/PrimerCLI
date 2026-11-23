@@ -4,6 +4,10 @@ Historial de entregas del CLI `organizador`. La etiqueta `v1.0` marca la
 entrega final del proyecto; el número interno del paquete conserva la
 cronología `2.x` ya documentada (`organizador --version` muestra `2.4.0`).
 
+El detalle línea a línea de cada versión vive en
+[docs/CHANGELOG.md](docs/CHANGELOG.md). Esta página resume las entregas y sus
+verificaciones.
+
 ## v1.0 — entrega final
 
 - **Fecha**: 2026-11-18
@@ -26,8 +30,9 @@ secretos y la auditoría de pruebas.
   `--seco`, modo `--json` y códigos de salida estables.
 - Confirmación interactiva o explícita antes de mover archivos en `revisar` y
   en `sugerir --aplicar`.
-- Reglas por defecto para 1º DAM, reglas del usuario por `ORGANIZADOR_REGLAS`
-  y validación de JSON con errores previsibles.
+- Reglas por defecto para 1º DAM, reglas del usuario en
+  `$XDG_CONFIG_HOME/organizador/reglas.json` (o `~/.config/organizador/`) y
+  validación de JSON con errores previsibles.
 - Historial de logs fuera del origen, `--ultimos`, `--listar` y `deshacer`
   incluso tras aplicar sugerencias de IA.
 - Proveedor de IA extraíble: se activa solo con `ORGANIZADOR_API_KEY`,
@@ -52,8 +57,8 @@ secretos y la auditoría de pruebas.
 ### Decisiones y documentación
 
 - `docs/adr/001-configuracion-externa.md`: salida, reglas y logs configurables.
-- `docs/adr/002-separacion-interfaz-motor.md`: interfaz, motor, acciones y
-  presentación separados.
+- `docs/adr/002-una-accion-una-clase.md`: una acción por clase con fábrica
+  `desde_config`; interfaz, motor, acciones y presentación separados.
 - `docs/adr/003-proveedor-ia.md`: proveedor opcional, entorno y fallback.
 - `docs/auditoria-tests.md`: cobertura, casos feos, regresiones y límites.
 - `.env.example`: plantilla sin valores reales; `.env` nunca se versiona.

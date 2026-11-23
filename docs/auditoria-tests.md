@@ -6,8 +6,8 @@ Resumen ejecutivo de la suite, mapa requisito → prueba → caso feo, sensibili
 
 | Métrica | Valor |
 |---|---|
-| Pruebas recopiladas | 148 |
-| Resultado | 148 passed, 0 failed, 0 skipped |
+| Pruebas recopiladas | 167 |
+| Resultado | 167 passed, 0 failed, 0 skipped |
 | Cobertura global | 94.22 % (1262 sentencias, 73 sin cubrir) |
 | Umbral CI | 85 % (`--cov-fail-under=85`) |
 | Archivos con cobertura completa | 10 de 23 |
@@ -17,7 +17,7 @@ Resumen ejecutivo de la suite, mapa requisito → prueba → caso feo, sensibili
 | Secretos | `scripts/check_secretos.py $(git ls-files)` limpio |
 | Matriz CI | Ubuntu 24.04 × Python 3.10, 3.11, 3.12, 3.13 |
 
-Conclusión: la suite cubre los seis comandos, el punto de entrada real, los errores previsibles, el modo JSON, el deshacer, las reglas personalizadas, la IA con fallback y la higiene de credenciales. Dos fallos reales aparecieron durante esta auditoría y quedaron corregidos con regresión (ver §5).
+Conclusión: la suite cubre los seis comandos, el punto de entrada real, los errores previsibles, el modo JSON, el deshacer, las reglas personalizadas, la IA con fallback y la higiene de credenciales. Añadida en la fase de higiene: contrato de versionado (`test_version_de_instalacion_igual_a_la_del_paquete`, `test_version_del_pyproject_es_dinamica`), candado del catálogo empaquetado (`test_catalogo_del_paque_no_esta_corrupto`) y doc sin deriva (`tests/test_docs_readme.py`). Dos fallos reales aparecieron durante la auditoría original y quedaron corregidos con regresión (ver §5).
 
 ## 2. Cómo reproducir
 
@@ -93,6 +93,9 @@ Nota sobre `cli.py:242`: la línea aparece como no cubierta en el informe de sub
 | Proveedor API | `test_api_sugiere_con_respuesta_valida`, `test_api_descarta_asignatura_inventada_y_cae_al_fallback`, `test_api_con_json_basura_lanza_ia_indisponible`, `test_api_sin_red_lanza_ia_indisponible`, `test_api_acepta_json_entre_backticks`, `test_api_respuesta_sin_choices_lanza_error`, `test_api_sugerencia_ausente_cae_al_fallback`, `test_api_confianza_imposible_usa_la_local` | Asignatura inventada se aplica; JSON con cerca se acepta; red caída tumba la CLI |
 | Fallback local | `test_heuristico_sugiere_y_explica_con_reglas_propias`, `test_api_caida_cae_a_heuristicas_y_sigue`, `test_explicar_con_ia_caida_usa_la_razon_local` | Proveedor caído deja de sugerir/explicar |
 | Sin fugas de clave | `tests/test_proveedor.py::test_desde_env_con_configuracion_no_revela_la_clave`, `tests/test_secretos.py::test_detecta_una_clave_con_patron_conocido`, `test_detecta_tokens_de_otros_proveedores`, `test_env_example_solo_contiene_nombres_vacios`, e2e con `CLAVE-FALSA-SIN-FORMATO` | `repr`/`str`, stdout o git contienen la credencial |
+| Version con una sola fuente | `tests/test_cli.py::test_version_de_instalacion_igual_a_la_del_paquete`, `test_version_del_pyproject_es_dinamica` | Alguien fija `version` en el TOML y el `--version` instalado diverge del módulo |
+| Catalogo de reglas empaquetado | `tests/test_reglas.py::test_catalogo_del_paque_no_esta_corrupto`, `test_cada_asignatura_del_catalogo_se_detecta_por_su_nombre` | Alias vacio o duplicado en `reglas.json` rompe la clasificacion sin romper tests de logica |
+| Doc sin deriva | `tests/test_docs_readme.py::test_readme_documenta_el_comando`, `test_parser_expon_los_seis_comandos`, `test_readme_no_promete_variables_de_entorno_inexistentes` | Comando nuevo sin documentar o env var fantasma en el README |
 
 ## 5. Sensibilidad a regresiones
 
