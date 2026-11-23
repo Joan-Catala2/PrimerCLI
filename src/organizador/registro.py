@@ -22,10 +22,17 @@ class Registro:
 
     def __init__(self, carpeta=CARPETA_LOGS):
         self.carpeta = Path(carpeta)
+        # ruta relativa => relativa al cwd de CADA invocacion: los comandos
+        # trabajan contra el historial actual del usuario
+        self._absoluta = None
 
     @classmethod
     def desde_config(cls, args):
-        """Crea el registro a partir de la configuracion parseada."""
+        """Crea el registro a partir de la configuracion parseada.
+
+        Mantiene la ruta tal cual: si es relativa, cada comando la resuelve
+        contra su cwd (comportamiento historico de la CLI).
+        """
         return cls(args.logs_dir)
 
     def ruta_unica(self, ruta, origen, salida, aviso=None):
@@ -124,6 +131,7 @@ class Registro:
             "fecha": datos.get("fecha", ""),
             "origen": datos.get("origen", ""),
             "salida": datos.get("salida", ""),
+            "restaurar": bool(datos.get("restaurar", False)),
             "movimientos": len(movimientos) if isinstance(movimientos, list) else 0,
             "errores": len(errores) if isinstance(errores, list) else 0,
         }

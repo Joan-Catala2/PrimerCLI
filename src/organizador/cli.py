@@ -269,6 +269,46 @@ def _construir_parser():
         help="emite las propuestas y el resultado en JSON (sin salida humana)",
     )
 
+    verificar = sub.add_parser(
+        "verificar",
+        help="audita el estado de la salida: duplicados, vacios y catalogo",
+    )
+    verificar.add_argument(
+        "--salida",
+        default="Organizado",
+        help="carpeta a auditar (por defecto: %(default)s)",
+    )
+    verificar.add_argument(
+        "--reglas",
+        default=None,
+        help="fichero de reglas a usar (sustituye a las del paquete)",
+    )
+    verificar.add_argument(
+        "--logs-dir",
+        default=CARPETA_LOGS,
+        help="carpeta del historial de logs (por defecto: %(default)s)",
+    )
+    verificar.add_argument(
+        "--podar",
+        action="store_true",
+        help="borra los duplicados conservando la primera copia (log deshacible)",
+    )
+    verificar.add_argument(
+        "--confirmar",
+        action="store_true",
+        help="poda sin preguntar (exige --podar)",
+    )
+    verificar.add_argument(
+        "--seco",
+        action="store_true",
+        help="solo muestra el resumen final, sin detalle",
+    )
+    verificar.add_argument(
+        "--json",
+        action="store_true",
+        help="emite la auditoria en JSON (sin salida humana)",
+    )
+
     return parser
 
 

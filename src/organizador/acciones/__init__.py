@@ -19,6 +19,7 @@ from .explicar import AccionExplicar
 from .reglas import AccionReglas
 from .revisar import AccionRevisar
 from .sugerir import AccionSugerir
+from .verificar import AccionVerificar
 
 __all__ = ["Accion", "Acciones"]
 
@@ -34,6 +35,7 @@ class Acciones:
         "sugerir": AccionSugerir,
         "explicar": AccionExplicar,
         "aplicar": AccionAplicar,
+        "verificar": AccionVerificar,
     }
 
     @staticmethod

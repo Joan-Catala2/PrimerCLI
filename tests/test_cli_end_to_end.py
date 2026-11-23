@@ -68,7 +68,7 @@ def test_punto_de_entrada_python_m_devuelve_version(tmp_path, monkeypatch, capsy
     assert __version__ in capsys.readouterr().out
 
 
-def test_cli_instalado_anuncia_los_siete_comandos(tmp_path):
+def test_cli_instalado_anuncia_los_ocho_comandos(tmp_path):
     resultado = _ejecutar(tmp_path, "--help")
 
     assert resultado.returncode == 0
@@ -80,6 +80,7 @@ def test_cli_instalado_anuncia_los_siete_comandos(tmp_path):
         "sugerir",
         "explicar",
         "aplicar",
+        "verificar",
     ):
         assert comando in resultado.stdout
 

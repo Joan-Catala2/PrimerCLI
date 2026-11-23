@@ -52,6 +52,9 @@ organizador explicar NOMBRE [--salida Organizado] [--reglas ruta.json] [--json]
 organizador aplicar [--salida Organizado] [--reglas ruta.json]
                     [--logs-dir carpeta] [--confirmar] [--reorganizar]
                     [--seco] [--json]
+organizador verificar [--salida Organizado] [--reglas ruta.json]
+                      [--logs-dir carpeta] [--podar --confirmar]
+                      [--seco] [--json]
 organizador --version
 ```
 
@@ -98,6 +101,13 @@ organizador --version
   del usuario (la ruta de ADR-001). `--reorganizar` (exige `--confirmar`)
   además mueve lo que ya se puede clasificar con las reglas nuevas y deja
   log deshacible. Un alias de un solo token corto nunca se propone.
+- `verificar`: audita `Organizado/` sin tocar nada: duplicados (hash),
+  subproductos del navegador (`doc (1).pdf`), carpetas vacías, carpetas
+  fuera de catálogo, archivos "atrapados" (en la raíz de la asignatura
+  cuando las reglas los pondrían en un tema) y estado de `_revision`
+  (cuántos propondrían `aplicar`/`sugerir`). `--podar --confirmar` mueve
+  las copias sobrantes a una papelera dentro del historial; `deshacer`
+  las devuelve a su carpeta original. Devuelve código 1 si hay hallazgos.
 - `--version`: muestra la versión instalada.
 
 El log solo se escribe cuando la ejecución mueve archivos o registra

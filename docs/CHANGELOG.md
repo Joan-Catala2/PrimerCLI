@@ -10,6 +10,14 @@ git `v1.0` corresponde a la entrega final; el número interno del paquete es
 
 ### Añadido
 
+- Comando `verificar`: audita `Organizado/` — duplicados (SHA-256),
+  subproductos del navegador (`doc (1).pdf`), carpetas vacías, carpetas
+  fuera de catálogo y archivos "atrapados" en la raíz de una asignatura;
+  informa del estado de `_revision` (cuántos propondrían
+  `aplicar`/`sugerir`). Devuelve código 1 si hay hallazgos. `--podar
+  --confirmar` mueve las copias sobrantes a una papelera dentro del
+  historial con log `restaurar`; `deshacer` devuelve cada copia a su carpeta
+  original exacta. Decisiones: `docs/adr/005-verificar-audita-y-poda.md`.
 - Comando `aplicar`: aprende alias de los archivos de `_revision`
   (mayoría de evidencias, determinista y sin IA). Por defecto solo
   propone; `--confirmar` pregunta alias a alias y los guarda fusionados
