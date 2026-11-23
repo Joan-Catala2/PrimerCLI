@@ -20,6 +20,7 @@ from organizador.acciones.explicar import AccionExplicar
 from organizador.acciones.reglas import AccionReglas
 from organizador.acciones.revisar import AccionRevisar
 from organizador.acciones.sugerir import AccionSugerir
+from organizador.acciones.verificar import AccionVerificar
 from organizador.excepciones import (
     AccionNoValida,
     ConfigError,
@@ -50,6 +51,7 @@ def _args(**datos):
         listar=False,
         aplicar=False,
         reorganizar=False,
+        podar=False,
         nombre="ejemplo.pdf",
     )
     base.update(datos)
@@ -72,6 +74,7 @@ def test_desde_config_devuelve_la_accion_de_cada_nombre():
         "sugerir": AccionSugerir,
         "explicar": AccionExplicar,
         "aplicar": AccionAplicar,
+        "verificar": AccionVerificar,
     }
     for nombre, clase in esperadas.items():
         accion = Acciones.desde_config(_args(accion=nombre), _consola())

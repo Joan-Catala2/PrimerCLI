@@ -4,13 +4,71 @@ Dos modos: un log concreto (`--log`) o el historial (`--ultimos N`). La
 diferencia de tratamiento ante un log corrupto es deliberada: una ruta
 pedida a mano aborta (el usuario esperaba deshacer ESE log), mientras que
 en el historial un log malo solo cuenta como error y el bucle continua.
+
+Los logs escritos por `verificar --podar` llevan `restaurar: true`: sus
+movimientos estan en la papelera del historial y se devuelven carpeta a
+carpeta (la ruta original), no al origen del log. El motor `deshacer` no
+conoce la papelera; la traduccion vive aqui, en la accion.
 """
 
 from pathlib import Path
 
 from ..excepciones import ConfigError
-from ..organizador import deshacer
+from ..organizador import _destino_disponible, deshacer
 from .base import Accion
+
+
+def _restaurar_papelera(datos, registro, simular=False):
+    """Invierte un log de `verificar --podar` desde la papelera del historial.
+
+    Cada movimiento tiene `destino` = ruta original. La copia vive en
+    `<logs>/.papelera/<nombre>` (con sufijo -N si habia colision). Devuelve
+    el mismo resumen que `organizador.deshacer`.
+    """
+    papelera = Path(datos.get("origen", registro.carpeta)) / ".papelera"
+    deshechos = []
+    errores = []
+    for movimiento in datos.get("movimientos", []):
+        nombre = movimiento.get("nombre", "")
+        original = Path(movimiento.get("destino", ""))
+        copia = papelera / original.name
+        if not copia.is_file():
+            copia = _buscar_por_sufijo(papelera, original.name)
+        try:
+            if copia is None:
+                raise FileNotFoundError(
+                    "no esta en la papelera: {}".format(original.name)
+                )
+            destino = _destino_disponible(original)
+            if not simular:
+                original.parent.mkdir(parents=True, exist_ok=True)
+                from shutil import move
+
+                move(str(copia), str(destino))
+            deshechos.append({"nombre": nombre, "destino": str(destino)})
+        except OSError as error:
+            errores.append({"nombre": nombre, "error": str(error)})
+    return {"deshechos": deshechos, "errores": errores}
+
+
+def _buscar_por_sufijo(papelera, nombre):
+    """'doc.pdf' en la papelera pudo guardarse como 'doc-1.pdf', 'doc-2.pdf'..."""
+    from ..organizador import NOMBRE_LOG  # noqa: F401 — coherencia de sufijos
+
+    if not papelera.is_dir():
+        return None
+    base = Path(nombre)
+    candidatos = [papelera / nombre]
+    n = 1
+    while True:
+        candidatos.append(papelera / "{}-{}{}".format(base.stem, n, base.suffix))
+        n += 1
+        if n > 50:
+            break
+    for candidato in candidatos:
+        if candidato.is_file():
+            return candidato
+    return None
 
 
 def deshacer_un_log(registro, ruta, simular=False):
@@ -19,7 +77,8 @@ def deshacer_un_log(registro, ruta, simular=False):
     estado: "ok", "missing" (no existe) o "error" (log invalido). El log
     invalido se propaga como excepcion y lo resuelve el llamador segun el
     contexto: una ruta concreta aborta con `ConfigError`; dentro del
-    historial solo cuenta como fallo de ese log.
+    historial solo cuenta como fallo de ese log. Los logs de poda
+    (`restaurar: true`) se revierten desde la papelera.
     """
     try:
         datos = registro.cargar(ruta)
@@ -28,6 +87,9 @@ def deshacer_un_log(registro, ruta, simular=False):
 
     if datos is None:
         return "missing", None
+
+    if datos.get("restaurar"):
+        return "ok", _restaurar_papelera(datos, registro, simular=simular)
 
     return "ok", deshacer(datos, simular=simular)
 
@@ -122,6 +184,8 @@ class AccionDeshacer(Accion):
         resumen = resultado
 
         borrado = self._borrar_si_toca(ruta, resumen)
+        if self._es_log_poda(ruta) and not resumen["errores"] and not self.simular:
+            self._purga_papelera()
 
         if consola.json_mode:
             self._emitir(
@@ -185,6 +249,13 @@ class AccionDeshacer(Accion):
             errores += len(resumen["errores"])
 
             borrado = self._borrar_si_toca(ruta, resumen)
+            if (
+                borrado
+                and self._es_log_poda(ruta)
+                and len(resumen["errores"]) == 0
+                and not self.simular
+            ):
+                self._purga_papelera()
             registros.append(
                 {
                     "ruta": str(ruta),
@@ -215,6 +286,19 @@ class AccionDeshacer(Accion):
         return 1 if errores else 0
 
     # --- utilidades ---------------------------------------------------------
+
+    def _es_log_poda(self, ruta):
+        """True si el log es de `verificar --podar` (se restaura desde papelera)."""
+        return bool((self.registro.info(ruta) or {}).get("restaurar"))
+
+    def _purga_papelera(self):
+        """Vacía la papelera tras una restauración completa y sin errores."""
+        papelera = Path(self.registro.carpeta) / ".papelera"
+        if not papelera.is_dir():
+            return
+        from shutil import rmtree
+
+        rmtree(str(papelera), ignore_errors=True)
 
     def _borrar_si_toca(self, ruta, resumen):
         """El log se borra solo si se deshizo entero y no se estaba simulando."""

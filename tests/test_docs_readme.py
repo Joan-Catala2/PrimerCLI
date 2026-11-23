@@ -13,7 +13,7 @@ from organizador.cli import _construir_parser
 RAIZ = Path(__file__).resolve().parents[1]
 README = RAIZ / "README.md"
 
-# Los siete comandos que debe documentar el README (y los que expone argparse).
+# Los ocho comandos que debe documentar el README (y los que expone argparse).
 COMANDOS = (
     "ejecutar",
     "revisar",
@@ -22,6 +22,7 @@ COMANDOS = (
     "sugerir",
     "explicar",
     "aplicar",
+    "verificar",
 )
 
 

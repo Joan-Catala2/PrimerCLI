@@ -6,9 +6,9 @@ Resumen ejecutivo de la suite, mapa requisito → prueba → caso feo, sensibili
 
 | Métrica | Valor |
 |---|---|
-| Pruebas recopiladas | 190 |
-| Resultado | 190 passed, 0 failed, 0 skipped |
-| Cobertura global | 93.64 % (1556 sentencias, 99 sin cubrir) |
+| Pruebas recopiladas | 217 |
+| Resultado | 217 passed, 0 failed, 0 skipped |
+| Cobertura global | 93.19 % (1836 sentencias, 125 sin cubrir) |
 | Umbral CI | 85 % (`--cov-fail-under=85`) |
 | Archivos con cobertura completa | 10 de 23 |
 | Tiempo local | ≈ 2.1 s en Python 3.10.12 |
@@ -17,7 +17,7 @@ Resumen ejecutivo de la suite, mapa requisito → prueba → caso feo, sensibili
 | Secretos | `scripts/check_secretos.py $(git ls-files)` limpio |
 | Matriz CI | Ubuntu 24.04 × Python 3.10, 3.11, 3.12, 3.13 |
 
-Conclusión: la suite cubre los siete comandos, el punto de entrada real, los errores previsibles, el modo JSON, el deshacer, las reglas personalizadas, la IA con fallback y la higiene de credenciales. Añadida en la fase de higiene: contrato de versionado (`test_version_de_instalacion_igual_a_la_del_paquete`, `test_version_del_pyproject_es_dinamica`), candado del catálogo empaquetado (`test_catalogo_del_paque_no_esta_corrupto`) y doc sin deriva (`tests/test_docs_readme.py`). Añadida en la fase 7 (`aplicar`): 21 pruebas en `tests/test_acciones_aplicar.py` — inferencia pura (`sugerir_alias`), fusión de reglas, EOF, colisión y deshacer — más el candado de banderas fantasma en el README. Dos fallos reales aparecieron durante la auditoría original y quedaron corregidos con regresión (ver §5).
+Conclusión: la suite cubre los ocho comandos, el punto de entrada real, los errores previsibles, el modo JSON, el deshacer, las reglas personalizadas, la IA con fallback y la higiene de credenciales. Añadida en la fase de higiene: contrato de versionado (`test_version_de_instalacion_igual_a_la_del_paquete`, `test_version_del_pyproject_es_dinamica`), candado del catálogo empaquetado (`test_catalogo_del_paque_no_esta_corrupto`) y doc sin deriva (`tests/test_docs_readme.py`). Añadida en la fase 7 (`aplicar`): 21 pruebas en `tests/test_acciones_aplicar.py` — inferencia pura (`sugerir_alias`), fusión de reglas, EOF, colisión y deshacer — más el candado de banderas fantasma en el README. Añadida en la fase 7B (`verificar`): 26 pruebas en `tests/test_acciones_verificar.py` — cinco detectores, JSON, códigos de salida, papelera y restauración exacta por `deshacer` (una de ellas, la ruta relativa del log de poda, se corrigió durante la auditoría: ver §5). Dos fallos reales aparecieron durante la auditoría original y quedaron corregidos con regresión (ver §5).
 
 ## 2. Cómo reproducir
 
@@ -45,22 +45,23 @@ La suite no necesita red, credenciales reales ni servicios externos. `urlopen` s
 | Módulo | Stmts | Miss | Cover | Líneas sin cubrir (interpretación) |
 |---|---:|---:|---:|---|
 | `acciones/aplicar.py` | 285 | 26 | 91 % | Ramas defensivas de lectura/escritura de JSON, aviso de log y variantes de presentación |
-| `acciones/deshacer.py` | 121 | 7 | 94 % | Defensas de log corrupto/formatos inesperados |
+| `acciones/verificar.py` | 218 | 13 | 94 % | Defensas de IO (hash ilegible, papelera ausente) y ramas de aviso |
+| `acciones/deshacer.py` | 173 | 22 | 87 % | Defensas de restauración y ramas de presentación |
 | `acciones/ejecutar.py` | 78 | 4 | 95 % | Ramas defensivas de resumen y filtro |
 | `acciones/explicar.py` | 45 | 1 | 98 % | Una rama de presentación |
 | `acciones/reglas.py` | 20 | 1 | 95 % | Una rama de presentación |
 | `acciones/revisar.py` | 135 | 9 | 93 % | EOF/cancelaciones y ramas de interacción |
 | `acciones/sugerir.py` | 111 | 4 | 96 % | Aviso IA no configurada y variantes de presentación |
-| `cli.py` | 78 | 2 | 97 % | Línea 283 cubierta por subprocess real; 312 es el `if __name__` del módulo |
+| `cli.py` | 86 | 2 | 98 % | Línea 323 cubierta por subprocess real; 352 es el `if __name__` del módulo |
 | `organizador.py` | 158 | 12 | 92 % | Defensas de MOV/formatos raros y `main` delegado |
 | `presentacion/consola.py` | 66 | 4 | 94 % | Ramas de confirmación/aviso en errores extraños |
 | `proveedor/api.py` | 97 | 8 | 92 % | Validaciones defensivas de respuestas malformadas |
 | `proveedor/base.py` | 38 | 1 | 97 % | Método abstracto nunca instanciado |
 | `registro.py` | 74 | 11 | 85 % | Rutas relativas, logs corruptos y sobreescritura defensiva |
 | `reglas.py` | 149 | 9 | 94 % | Validaciones defensivas de reglas |
-| **TOTAL** | **1556** | **99** | **93.64 %** | — |
+| **TOTAL** | **1836** | **125** | **93.19 %** | — |
 
-Nota sobre `cli.py:283`: la línea aparece como no cubierta en el informe de subprocess porque `coverage.py` no instrumenta el intérprete hijo, pero esa rama se ejecuta en `test_cli_instalado_error_json_tiene_codigo_y_objeto_valido` y `test_cli_instalado_aplicar_sin_confirmar_no_toca_archivos`. `cli.py:312` es el guardián `if __name__ == "__main__"`, ejercitado por `runpy` en `test_punto_de_entrada_python_m_devuelve_version`.
+Nota sobre `cli.py:323`: la línea aparece como no cubierta en el informe de subprocess porque `coverage.py` no instrumenta el intérprete hijo, pero esa rama se ejecuta en `test_cli_instalado_error_json_tiene_codigo_y_objeto_valido` y `test_cli_instalado_aplicar_sin_confirmar_no_toca_archivos`. `cli.py:352` es el guardián `if __name__ == "__main__"`, ejercitado por `runpy` en `test_punto_de_entrada_python_m_devuelve_version`.
 
 ## 4. Mapa requisito → prueba → caso feo
 
@@ -85,7 +86,7 @@ Nota sobre `cli.py:283`: la línea aparece como no cubierta en el informe de sub
 | Fallos antes de tocar disco | `tests/test_acciones.py::test_fecha_invalida_falla_antes_de_tocar_el_disco`, `test_reglas_corruptas_falla_antes_de_cualquier_effeto` | Config inválida mueve un archivo antes de fallar |
 | Modo JSON | `tests/test_cli.py::test_cli_json_ejecutar`, `test_cli_json_revisar`, `test_cli_error_en_modo_json_es_objeto_valido`, `tests/test_cli_end_to_end.py::test_cli_instalado_error_json_tiene_codigo_y_objeto_valido` | `stdout` contiene texto no parseable o `stderr` contamina el JSON |
 | Códigos de salida | `tests/test_cli.py::test_cli_accion_desconocida_devuelve_2`, `test_cli_deshacer_ultimos_cero_es_error_de_uso`; e2e de error y de `--aplicar` sin `--confirmar` | Script interpreta éxito donde hubo error de uso |
-| Punto de entrada real | `tests/test_cli_end_to_end.py::test_punto_de_entrada_python_m_devuelve_version`, `test_cli_instalado_anuncia_los_siete_comandos` | `python -m organizador` no imprime o no lista `sugerir`/`explicar` |
+| Punto de entrada real | `tests/test_cli_end_to_end.py::test_punto_de_entrada_python_m_devuelve_version`, `test_cli_instalado_anuncia_los_ocho_comandos` | `python -m organizador` no imprime o no lista `sugerir`/`explicar` |
 | Sugerir sin aplicar | `tests/test_acciones_sugerir.py::test_sugerir_muestra_la_propuesta_sin_mover_nada`, `test_sugerir_json_es_valido_y_no_escribe_en_stdout` | `sugerir` mueve archivos sin `--aplicar` |
 | Sugerir con aplicar | `tests/test_acciones_sugerir.py::test_aplicar_confirmado_mueve_y_deja_log`, `test_aplicar_sin_confirmar_falla_antes_de_crear_nada`, `test_aplicar_rechazado_no_mueve_nada`, `test_sugerir_aplicado_se_puede_deshacer` | `--aplicar` mueve sin confirmar o deja un log que `deshacer` no puede leer |
 | Sugerir casos feos | `test_sin_propuestas_aplicar_no_mueve_ni_escribe_log`, `test_aplicar_sin_tema_mueve_a_la_raiz_de_la_asignatura`, `test_error_al_mover_se_cuenta_en_json`, `test_error_al_escribir_el_log_avisa_y_no_rompe`, `test_sugerir_sin_carpeta_en_humano_avisa`, `test_sugerir_carpeta_vacia_en_humano_avisa` | Error de movimiento se traga; log fallido aborta; carpeta vacía confunde al usuario |
@@ -100,6 +101,9 @@ Nota sobre `cli.py:283`: la línea aparece como no cubierta en el informe de sub
 | Aplicar (aprender alias) | `tests/test_acciones_aplicar.py::test_propone_alias_largo_tras_asignatura`, `test_token_generico_no_propone_nada`, `test_unico_token_corto_no_propone`, `test_empate_entre_asignaturas_no_propone`, `test_alias_de_tema_cuenta_como_evidencia` | Alias inventado a partir de `tema3`, `x2` o tokens cortos; `poo` propuesto pese a ser variante de `pseudocodigo` |
 | Aplicar (confirmar/guardar) | `test_propuesta_sin_confirmar_no_toca_reglas_ni_mueve`, `test_confirmar_guarda_alias_fusionando_con_previas`, `test_rechazar_no_escribe_nada`, `test_eof_a_mitad_no_escribe_nada`, `test_aplicar_con_reglas_propias_guarda_en_el_mismo_fichero` | `aplicar` escribe sin preguntar; el EOF a mitad deja reglas a medias; `--reglas` guarda fuera del fichero del usuario |
 | Aplicar (reorganizar) | `test_reorganizar_mueve_con_alias_nuevos_y_deja_log_deshacible`, `test_reorganizar_respeta_el_sufijo_anti_colision`, `test_seco_solo_imprime_resumen`, `test_json_de_aplicar_es_valido`, `test_sin_carpeta_revision_json_valido_y_codigo_cero` | `deshacer` no revierte el `--reorganizar`; colisión de destinos pisa un archivo; JSON roto o stdout sucio |
+| Verificar (detectores) | `tests/test_acciones_verificar.py::test_duplicados_detectados_por_hash`, `test_subproducto_de_navegador`, `test_vacias_y_fuera_catalogo`, `test_atrapados_en_raiz_de_asignatura`, `test_revision_reporta_aplicar_y_sugerir` | Un `cp -p` pasa por archivo único; `doc (1).pdf` no se reporta; carpeta inventada se traga el resumen |
+| Verificar (códigos y JSON) | `test_salida_limpia_devuelve_cero`, `test_confirmar_sin_podar_es_error_de_uso`, `test_json_valido_y_con_estructura`, `test_podar_json_sin_confirmar_avisa_y_no_mueve`, `test_ignora_papelera_y_logs` | Un script recibe rc=0 con hallazgos; `--confirmar` solo poda; stdout JSON con ruido |
+| Verificar (papelera) | `test_podar_conserva_primera_y_va_a_papelera`, `test_podar_sin_confirmar_no_toca_nada`, `test_podar_eof_no_toca_nada`, `test_podar_con_nombre_repetido_usa_sufijo`, `test_deshacer_historial_reviente_poda_y_purga`, `test_papelera_queda_vacia_tras_deshacer`, `test_deshacer_simular_no_toca_papelera_ni_copia` | La poda se come el log o la copia; `deshacer` restaura a la raíz en vez de la carpeta; la simulación destruye |
 
 ## 5. Sensibilidad a regresiones
 
@@ -117,10 +121,11 @@ No se añadió una librería de mutation testing: el proyecto se mantiene solo c
 | El scanner anti-claves pierde un proveedor | `test_detecta_tokens_de_otros_proveedores` |
 | `.env.example` incluye un valor de ejemplo no vacío | `test_env_example_solo_contiene_nombres_vacios` |
 
-Durante la auditoría aparecieron dos mutaciones reales, no hipotéticas:
+Durante la auditoría aparecieron mutaciones reales, no hipotéticas:
 
 1. `AccionSugerir._aplicar` llamaba a `limpiar_vacias(self.salida)`, borrando `_revision` y dejando al log sin capacidad de deshacer. Se eliminó la llamada y se añadió `test_sugerir_aplicado_se_puede_deshacer`.
 2. `main()` recibe `argv=None` desde el entry point real; `_detectar_json(None)` devolvía `False`, por lo que los errores de `python -m organizador --json` salían como texto por `stderr`. Se corrigió leyendo `sys.argv[1:]` y se cubrió con dos pruebas end-to-end.
+3. (fase 7B) El log de poda guardaba la ruta original tal cual: con `--salida` relativo el destino quedaba relativo y `deshacer` no encontraba la papelera. Se corrigió resolviendo `--logs-dir` a absoluto en `verificar` (el motor siempre guarda absolutos) y el caso quedó cubierto por `test_podar_conserva_primera_y_va_a_papelera` y `test_deshacer_poda_json_valido`.
 
 ## 6. Aislamiento y determinismo
 
