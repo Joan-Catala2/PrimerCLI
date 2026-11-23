@@ -8,6 +8,16 @@ El detalle línea a línea de cada versión vive en
 [docs/CHANGELOG.md](docs/CHANGELOG.md). Esta página resume las entregas y sus
 verificaciones.
 
+## Sin publicar — fase 7 (aplicar)
+
+En la rama `feat/comando-aplicar`, pendiente de fusión:
+
+- Séptimo comando `aplicar`: aprende alias de `_revision` (mayoría de
+  evidencias, sin IA), `--confirmar` los guarda fusionados en las reglas
+  del usuario y `--reorganizar` (exige `--confirmar`) mueve lo
+  clasificable con log deshacible. ADR-004.
+- Suite ampliada a 190 pruebas; cobertura 93.64 % (margen sobre el 85 %).
+
 ## v1.0 — entrega final
 
 - **Fecha**: 2026-11-18

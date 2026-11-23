@@ -49,6 +49,9 @@ organizador reglas [--reglas ruta.json]
 organizador sugerir [--salida Organizado] [--reglas ruta.json]
                     [--logs-dir carpeta] [--aplicar --confirmar] [--json]
 organizador explicar NOMBRE [--salida Organizado] [--reglas ruta.json] [--json]
+organizador aplicar [--salida Organizado] [--reglas ruta.json]
+                    [--logs-dir carpeta] [--confirmar] [--reorganizar]
+                    [--seco] [--json]
 organizador --version
 ```
 
@@ -89,6 +92,12 @@ organizador --version
   limpia las carpetas vacías y devuelve código de error si algún archivo no
   se puede devolver.
 - `reglas`: muestra las asignaturas y temas disponibles.
+- `aplicar`: aprende alias de los archivos de `_revision` (mayoría de
+  evidencias entre asignaturas; sin IA). Por defecto **solo propone**;
+  `--confirmar` pregunta alias a alias y guarda los aceptados en las reglas
+  del usuario (la ruta de ADR-001). `--reorganizar` (exige `--confirmar`)
+  además mueve lo que ya se puede clasificar con las reglas nuevas y deja
+  log deshacible. Un alias de un solo token corto nunca se propone.
 - `--version`: muestra la versión instalada.
 
 El log solo se escribe cuando la ejecución mueve archivos o registra
@@ -158,6 +167,7 @@ Resumen
 ```
 cli.py            parser argparse + despacho (sin logica, sin E/S)
 acciones/         una clase por comando + fabrica Acciones.desde_config
+aplicar.py            aprender alias de _revision (propuesta -> confirmar)
 presentacion/     Consola (humano/JSON) — unica capa que imprime
 registro.py       historial de logs (clase Registro)
 organizador.py    motor: clasifica y mueve

@@ -12,6 +12,7 @@ import json
 import pytest
 
 from organizador.acciones import Acciones
+from organizador.acciones.aplicar import AccionAplicar
 from organizador.acciones.base import Accion
 from organizador.acciones.deshacer import AccionDeshacer
 from organizador.acciones.ejecutar import AccionEjecutar
@@ -48,6 +49,7 @@ def _args(**datos):
         ultimos=1,
         listar=False,
         aplicar=False,
+        reorganizar=False,
         nombre="ejemplo.pdf",
     )
     base.update(datos)
@@ -69,6 +71,7 @@ def test_desde_config_devuelve_la_accion_de_cada_nombre():
         "reglas": AccionReglas,
         "sugerir": AccionSugerir,
         "explicar": AccionExplicar,
+        "aplicar": AccionAplicar,
     }
     for nombre, clase in esperadas.items():
         accion = Acciones.desde_config(_args(accion=nombre), _consola())

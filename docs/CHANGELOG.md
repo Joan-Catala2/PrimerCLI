@@ -10,6 +10,13 @@ git `v1.0` corresponde a la entrega final; el número interno del paquete es
 
 ### Añadido
 
+- Comando `aplicar`: aprende alias de los archivos de `_revision`
+  (mayoría de evidencias, determinista y sin IA). Por defecto solo
+  propone; `--confirmar` pregunta alias a alias y los guarda fusionados
+  en las reglas del usuario (o en el fichero de `--reglas` si se usa);
+  `--reorganizar` (exige `--confirmar`) mueve lo clasificable con las
+  reglas nuevas y deja log deshacible. Decisiones:
+  `docs/adr/004-aplicar-aprende-de-revision.md`.
 - Documentación: esta línea temporal, enlace desde el README y desde
   `RELEASES.md`.
 - La versión del paquete es dinámica: `pyproject.toml` deriva
