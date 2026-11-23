@@ -6,16 +6,16 @@ Resumen ejecutivo de la suite, mapa requisito → prueba → caso feo, sensibili
 
 | Métrica | Valor |
 |---|---|
-| Pruebas recopiladas | 217 |
-| Resultado | 217 passed, 0 failed, 0 skipped |
+| Pruebas recopiladas | 221 |
+| Resultado | 221 passed, 0 failed, 0 skipped |
 | Cobertura global | 93.19 % (1836 sentencias, 125 sin cubrir) |
 | Umbral CI | 85 % (`--cov-fail-under=85`) |
 | Archivos con cobertura completa | 10 de 23 |
 | Tiempo local | ≈ 2.1 s en Python 3.10.12 |
 | Prueba más lenta | `test_cli_instalado_json_de_tres_acciones_es_parseable`, ≈ 0.33 s |
-| Lint / tipos | `ruff check .`, `ruff format --check .`, `mypy src` limpios |
+| Lint / tipos | `ruff check .`, `ruff format --check .`, `mypy src` y `mypy tests` limpios |
 | Secretos | `scripts/check_secretos.py $(git ls-files)` limpio |
-| Matriz CI | Ubuntu 24.04 × Python 3.10, 3.11, 3.12, 3.13 |
+| Matriz CI | Ubuntu 24.04 (3.10–3.13) + macOS 14 y Windows (3.12, 3.13) |
 
 Conclusión: la suite cubre los ocho comandos, el punto de entrada real, los errores previsibles, el modo JSON, el deshacer, las reglas personalizadas, la IA con fallback y la higiene de credenciales. Añadida en la fase de higiene: contrato de versionado (`test_version_de_instalacion_igual_a_la_del_paquete`, `test_version_del_pyproject_es_dinamica`), candado del catálogo empaquetado (`test_catalogo_del_paque_no_esta_corrupto`) y doc sin deriva (`tests/test_docs_readme.py`). Añadida en la fase 7 (`aplicar`): 21 pruebas en `tests/test_acciones_aplicar.py` — inferencia pura (`sugerir_alias`), fusión de reglas, EOF, colisión y deshacer — más el candado de banderas fantasma en el README. Añadida en la fase 7B (`verificar`): 26 pruebas en `tests/test_acciones_verificar.py` — cinco detectores, JSON, códigos de salida, papelera y restauración exacta por `deshacer` (una de ellas, la ruta relativa del log de poda, se corrigió durante la auditoría: ver §5). Dos fallos reales aparecieron durante la auditoría original y quedaron corregidos con regresión (ver §5).
 
@@ -31,6 +31,10 @@ mypy src
 pytest --cov=organizador --cov-report=term-missing --cov-fail-under=85
 python3 scripts/check_secretos.py $(git ls-files)
 ```
+
+El workflow usa `git ls-files -z | xargs -0 ...` (portable en las tres
+plataformas); el `pre-commit` local mantiene `entry` por separado para
+`mypy src` y `mypy tests`.
 
 Para ver la prueba lenta:
 
@@ -96,6 +100,7 @@ Nota sobre `cli.py:323`: la línea aparece como no cubierta en el informe de sub
 | Fallback local | `test_heuristico_sugiere_y_explica_con_reglas_propias`, `test_api_caida_cae_a_heuristicas_y_sigue`, `test_explicar_con_ia_caida_usa_la_razon_local` | Proveedor caído deja de sugerir/explicar |
 | Sin fugas de clave | `tests/test_proveedor.py::test_desde_env_con_configuracion_no_revela_la_clave`, `tests/test_secretos.py::test_detecta_una_clave_con_patron_conocido`, `test_detecta_tokens_de_otros_proveedores`, `test_env_example_solo_contiene_nombres_vacios`, e2e con `CLAVE-FALSA-SIN-FORMATO` | `repr`/`str`, stdout o git contienen la credencial |
 | Version con una sola fuente | `tests/test_cli.py::test_version_de_instalacion_igual_a_la_del_paquete`, `test_version_del_pyproject_es_dinamica` | Alguien fija `version` en el TOML y el `--version` instalado diverge del módulo |
+| Escudo de cobertura | `tests/test_badge.py::test_porcentaje_y_color_bueno`, `test_por_debajo_del_umbral_en_rojo`, `test_xml_roto_es_error_de_cl` | El badge miente (verde con <85 %) o el workflow revienta con un XML inesperado |
 | Catalogo de reglas empaquetado | `tests/test_reglas.py::test_catalogo_del_paque_no_esta_corrupto`, `test_cada_asignatura_del_catalogo_se_detecta_por_su_nombre` | Alias vacio o duplicado en `reglas.json` rompe la clasificacion sin romper tests de logica |
 | Doc sin deriva | `tests/test_docs_readme.py::test_readme_documenta_el_comando`, `test_parser_expone_los_comandos_del_readme`, `test_readme_no_promete_variables_de_entorno_inexistentes`, `test_readme_no_documenta_banderas_fantasma` | Comando nuevo sin documentar, env var fantasma o bandera inventada en el README |
 | Aplicar (aprender alias) | `tests/test_acciones_aplicar.py::test_propone_alias_largo_tras_asignatura`, `test_token_generico_no_propone_nada`, `test_unico_token_corto_no_propone`, `test_empate_entre_asignaturas_no_propone`, `test_alias_de_tema_cuenta_como_evidencia` | Alias inventado a partir de `tema3`, `x2` o tokens cortos; `poo` propuesto pese a ser variante de `pseudocodigo` |
@@ -148,7 +153,7 @@ Durante la auditoría aparecieron mutaciones reales, no hipotéticas:
 - Cobertura 93.64 %, no 100 %. Quedan ramas mayormente defensivas en `registro.py`, `organizador.py`, `acciones/aplicar.py` y `proveedor/api.py`.
 - No hay mutation testing automatizado; §5 documenta pruebas sensibles a mutaciones concretas, no una puntuación de mutantes.
 - No se prueba contra proveedores de IA reales: sería pago, no determinista y contradictorio con las restricciones del proyecto.
-- La matriz CI cubre Linux y cuatro versiones de Python; no se prueba Windows ni macOS.
+- La matriz CI cubre Linux (3.10–3.13), macOS 14 y Windows (3.12/3.13). Las versiones recortadas en macOS/Windows se consideran cubiertas por la matriz Linux: la misma suite, mismos pasos.
 - Los mensajes exactos en humano están cubiertos por fragmentos (`in`), no por comparación byte a byte; la intención es detectar pérdida de información, no congelar redacción.
 - Las subprocess e2e dependen de `python -m organizador`, que es precisamente la forma instalable que se quiere auditar; por eso se aceptan ~0.3 s por prueba.
 

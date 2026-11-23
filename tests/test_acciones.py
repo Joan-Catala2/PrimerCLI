@@ -123,7 +123,7 @@ def test_desde_config_no_monta_las_demas_acciones():
 def test_ejecutar_lleva_las_extensiones_aplanadas():
     args = _args(accion="ejecutar", extension=["pdf,txt", "md"])
     accion = Acciones.desde_config(args, _consola())
-    assert accion.opciones["extensiones"] == ["pdf", "txt", "md"]
+    assert accion.opciones["extensiones"] == ["pdf", "txt", "md"]  # type: ignore[attr-defined]
 
 
 def test_json_mode_viaja_a_la_consola_de_la_accion():
@@ -143,5 +143,5 @@ def test_ejecutar_reusa_las_reglas_ya_cargadas(tmp_path):
     accion = Acciones.desde_config(
         _args(accion="ejecutar", reglas=str(ruta)), _consola()
     )
-    assert [r.asignatura for r in accion.reglas] == ["X"]
-    assert accion.opciones["reglas"] is accion.reglas
+    assert [r.asignatura for r in accion.reglas] == ["X"]  # type: ignore[attr-defined]
+    assert accion.opciones["reglas"] is accion.reglas  # type: ignore[attr-defined]

@@ -1,5 +1,8 @@
 # organizador
 
+[![tests](https://github.com/Joan-Catala2/PrimerCLI/actions/workflows/tests.yml/badge.svg)](https://github.com/Joan-Catala2/PrimerCLI/actions/workflows/tests.yml)
+[![cobertura](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/Joan-Catala2/PrimerCLI/badges/data.json)](https://github.com/Joan-Catala2/PrimerCLI/actions/workflows/tests.yml)
+
 CLI que organiza archivos descargados (apuntes, PDFs, enunciados...) en
 carpetas por **asignatura** y **tema**, usando únicamente el nombre del
 archivo.
@@ -282,14 +285,16 @@ pytest
 ```bash
 ruff check .
 ruff format --check .
-mypy src
-pytest --cov=organizador --cov-report=term-missing
+mypy src && mypy tests
+pytest --cov=organizador --cov-report=term-missing --cov-fail-under=85
 pre-commit install
 pre-commit run --all-files
 ```
 
-La CI ejecuta `ruff`, `mypy` y los tests con cobertura mínima del 85% en
-Python 3.10–3.13.
+La CI ejecuta `ruff`, `mypy` (en `src` y en `tests`) y los tests con
+cobertura mínima del 85 % en Python 3.10–3.13 sobre Linux, macOS y Windows.
+La cobertura del job de Linux alimenta el escudo del encabezado (rama
+`badges`, sin servicios externos).
 
 ### Auditoría de pruebas
 
