@@ -100,6 +100,16 @@ def cargar_reglas(ruta=None):
         raise ConfigError(
             "La ruta de reglas es una carpeta, no un fichero: {}".format(ruta)
         ) from error
+    except PermissionError as error:
+        # Windows no devuelve IsADirectoryError al abrir un directorio:
+        # dice PermissionError. La comprobacion es posterior y manda.
+        if Path(ruta).is_dir():
+            raise ConfigError(
+                "La ruta de reglas es una carpeta, no un fichero: {}".format(ruta)
+            ) from error
+        raise ConfigError(
+            "No se puede leer el fichero de reglas: {}".format(ruta)
+        ) from error
     except json.JSONDecodeError as error:
         raise ConfigError("JSON invalido en {}: {}".format(ruta, error)) from error
 

@@ -10,6 +10,17 @@ import json
 from organizador import cli
 
 
+def _posix(ruta):
+    """Ruta como la imprime la CLI en POSIX (los tests comparan contra POSIX).
+
+    La accion `verificar` muestra rutas relativas con el separador nativo;
+    en Windows serian `FOL\a.pdf`. Se normaliza en el test, no en el codigo:
+    la CLI imprime la ruta real del sistema, y eso es lo que debe ver un
+    usuario de Windows.
+    """
+    return str(ruta).replace("\\", "/")
+
+
 def _salida(tmp_path, *rutas):
     salida = tmp_path / "Organizado"
     for ruta in rutas:
@@ -100,7 +111,7 @@ def test_vacias_y_fuera_catalogo(tmp_path, capsys):
 def test_atrapados_en_raiz_de_asignatura(tmp_path, capsys):
     _salida(tmp_path, "Programacion/java_tema_3.pdf")
     assert _ejecutar(tmp_path) == 1
-    assert "atrapado: Programacion/java_tema_3.pdf -> Programacion/Java" in (
+    assert "atrapado: Programacion/java_tema_3.pdf -> Programacion/Java" in _posix(
         capsys.readouterr().out
     )
 
@@ -116,7 +127,9 @@ def test_subproducto_de_navegador(tmp_path, capsys):
     _salida(tmp_path, "FOL/a.pdf")
     (tmp_path / "Organizado/FOL/a (1).pdf").write_bytes(b"distinto")
     assert _ejecutar(tmp_path) == 1
-    assert "subproducto: FOL/a (1).pdf (copia de FOL/a.pdf)" in capsys.readouterr().out
+    assert "subproducto: FOL/a (1).pdf (copia de FOL/a.pdf)" in _posix(
+        capsys.readouterr().out
+    )
 
 
 def test_json_valido_y_con_estructura(tmp_path, capsys):
@@ -124,7 +137,9 @@ def test_json_valido_y_con_estructura(tmp_path, capsys):
     assert _ejecutar(tmp_path, "--json") == 1
     datos = json.loads(capsys.readouterr().out)
     assert datos["ok"] is False and datos["accion"] == "verificar"
-    assert datos["duplicados"] == [["FOL/a.pdf", "FOL/b.pdf"]]
+    assert [[_posix(r) for r in grupo] for grupo in datos["duplicados"]] == [
+        ["FOL/a.pdf", "FOL/b.pdf"]
+    ]
     assert datos["errores"] == []
 
 
@@ -161,7 +176,7 @@ def test_podar_conserva_primera_y_va_a_papelera(tmp_path, capsys):
     assert _ejecutar(tmp_path, "--podar", "--confirmar") == 1
     assert (tmp_path / "Organizado/FOL/a.pdf").exists()
     assert not (tmp_path / "Organizado/FOL/z.pdf").exists()
-    assert (tmp_path / "logs/.papelera/z.pdf").is_file()
+    assert (tmp_path / "logs/.papelera/z.pdf").is_file()  # papelera en historial
     assert len(_logs(tmp_path)) == 1  # un unico log de poda, marca restaurar
 
 
