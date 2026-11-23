@@ -134,6 +134,34 @@ def test_cli_version(capsys):
     assert __version__ in capsys.readouterr().out
 
 
+def test_version_de_instalacion_igual_a_la_del_paquete():
+    """La única fuente de verdad es `organizador.__version__`.
+
+    `pyproject.toml` la declara `dynamic`, así que el metadato PEP 621 se
+    deriva del módulo: si alguien añade un `version =` fijo al TOML o toca
+    `__init__.py` sin reinstalar, esta prueba lo pilla.
+    """
+    from importlib import metadata
+
+    assert metadata.version("organizador") == __version__
+
+
+def test_version_del_pyproject_es_dinamica():
+    """El TOML no puede volver a fijar la versión: debe seguir `dynamic`."""
+    try:
+        import tomllib
+    except ModuleNotFoundError:  # Python 3.10
+        import tomli as tomllib  # type: ignore[no-redef]
+    from pathlib import Path
+
+    toml = Path(__file__).resolve().parents[1] / "pyproject.toml"
+    datos = tomllib.loads(toml.read_text(encoding="utf-8"))
+    assert "version" not in datos["project"]
+    assert datos["tool"]["setuptools"]["dynamic"]["version"]["attr"] == (
+        "organizador.__version__"
+    )
+
+
 def test_cli_reglas(capsys):
     codigo = cli.main(["reglas"])
 

@@ -4,6 +4,7 @@ import pytest
 
 from organizador.excepciones import ConfigError, OrganizadorError
 from organizador.reglas import (
+    REGLAS_DEL_PAQUETE,
     cargar_reglas,
     clasificar,
     reglas_efectivas,
@@ -188,3 +189,39 @@ def test_reglas_efectivas_usuario_sobrescribe(tmp_path, monkeypatch):
 
     assert len(fol) == 1
     assert fol[0].temas == (("Custom", ("custom",)),)
+
+
+# --- Catalogo empaquetado: el JSON del paquete es parte de la CLI ----------
+# Si `reglas.json` se corrompe (alias vacio, asignatura duplicada, campo que
+# falta), la CLI instalada deja de clasificar sin dejar de pasar las pruebas
+# de logica. Estas pruebas son el candado del artefacto.
+
+ESPERANZA_CATALOGO = {
+    "Programacion": ["Java", "Python", "Algoritmos", "EstructurasDeDatos"],
+    "BaseDeDatos": ["SQL", "ModeloEntidadRelacion", "Normalizacion"],
+    "SistemasInformaticos": ["Hardware", "Redes", "SistemasOperativos"],
+    "EntornosDeDesarrollo": ["Git", "Testing", "Refactorizacion"],
+    "LlenguatgeDeMarques": ["HTML", "CSS", "XML"],
+    "Ingles": ["PhrasalVerbs", "Vocabulario", "Gramatica"],
+    "FOL": ["PrevencionRiesgos", "DerechoLaboral", "Nomina"],
+    "IPE": ["Curriculo", "Entrevista", "Empleabilidad"],
+}
+
+
+def test_catalogo_del_paque_no_esta_corrupto():
+    assert len(REGLAS_DEL_PAQUETE) == len(ESPERANZA_CATALOGO)
+    nombres = [r.asignatura for r in REGLAS_DEL_PAQUETE]
+    assert len(set(nombres)) == len(nombres), "asignaturas duplicadas"
+    assert set(nombres) == set(ESPERANZA_CATALOGO)
+    for regla in REGLAS_DEL_PAQUETE:
+        assert regla.aliases, f"{regla.asignatura} sin aliases"
+        assert all(a.strip().lower() == a for a in regla.aliases), (
+            f"alias sin normalizar en {regla.asignatura}"
+        )
+        temas = {t[0] for t in regla.temas}
+        assert temas == set(ESPERANZA_CATALOGO[regla.asignatura])
+
+
+@pytest.mark.parametrize("asignatura", sorted(ESPERANZA_CATALOGO))
+def test_cada_asignatura_del_catalogo_se_detecta_por_su_nombre(asignatura):
+    assert clasificar(f"{asignatura}_tema1.pdf") == (asignatura, "")

@@ -5,6 +5,7 @@ carpetas por **asignatura** y **tema**, usando únicamente el nombre del
 archivo.
 
 Documentación: [historial de releases](RELEASES.md) ·
+[cambios por versión](docs/CHANGELOG.md) ·
 [auditoría de pruebas](docs/auditoria-tests.md).
 
 ```
@@ -52,6 +53,8 @@ organizador --version
 ```
 
 - `origen`: carpeta con los archivos a organizar (por defecto `./descargas`).
+- `ejecutar`: mueve los archivos del origen según las reglas; es el comando
+  por defecto del flujo de trabajo.
 - `--salida`: carpeta de destino (por defecto `./Organizado`).
 - `--seco`: solo muestra el resumen final, sin detalle por archivo.
 - `--simular`: muestra qué haría sin mover ningún archivo.
@@ -150,7 +153,7 @@ Resumen
   Destino:             /ruta/al/proyecto/Organizado
 ```
 
-## Arquitectura (v2.4+)
+## Arquitectura
 
 ```
 cli.py            parser argparse + despacho (sin logica, sin E/S)
