@@ -33,16 +33,14 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-24.04, macos-14, windows-latest]
+        os: [ubuntu-24.04, windows-latest]
         python-version: ["3.10", "3.11", "3.12", "3.13"]
         exclude:
           # Linux mantiene la matriz completa (lo verificado en la v1.0);
-          # macOS y Windows se prueban en las dos puntas para no triplicar
-          # minutos sin informacion nueva.
-          - os: macos-14
-            python-version: "3.10"
-          - os: macos-14
-            python-version: "3.11"
+          # Windows se prueba en las dos puntas para no duplicar minutos
+          # sin informacion nueva. macOS no se incluye: los runners
+          # macos-* de GitHub no estan disponibles para cuentas free
+          # (jobs cancelled sin pasos), y no se finge cobertura.
           - os: windows-latest
             python-version: "3.10"
           - os: windows-latest

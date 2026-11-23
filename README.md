@@ -292,7 +292,9 @@ pre-commit run --all-files
 ```
 
 La CI ejecuta `ruff`, `mypy` (en `src` y en `tests`) y los tests con
-cobertura mínima del 85 % en Python 3.10–3.13 sobre Linux, macOS y Windows.
+cobertura mínima del 85 % en Python 3.10–3.13 sobre Linux y Windows
+(macOS no se prueba: los runners `macos-*` no están disponibles para
+cuentas gratuitas de GitHub Actions).
 La cobertura del job de Linux alimenta el escudo del encabezado (rama
 `badges`, sin servicios externos).
 

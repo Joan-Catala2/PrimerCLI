@@ -15,7 +15,7 @@ Resumen ejecutivo de la suite, mapa requisito → prueba → caso feo, sensibili
 | Prueba más lenta | `test_cli_instalado_json_de_tres_acciones_es_parseable`, ≈ 0.33 s |
 | Lint / tipos | `ruff check .`, `ruff format --check .`, `mypy src` y `mypy tests` limpios |
 | Secretos | `scripts/check_secretos.py $(git ls-files)` limpio |
-| Matriz CI | Ubuntu 24.04 (3.10–3.13) + macOS 14 y Windows (3.12, 3.13) |
+| Matriz CI | Ubuntu 24.04 (3.10–3.13) + Windows (3.12, 3.13) |
 
 Conclusión: la suite cubre los ocho comandos, el punto de entrada real, los errores previsibles, el modo JSON, el deshacer, las reglas personalizadas, la IA con fallback y la higiene de credenciales. Añadida en la fase de higiene: contrato de versionado (`test_version_de_instalacion_igual_a_la_del_paquete`, `test_version_del_pyproject_es_dinamica`), candado del catálogo empaquetado (`test_catalogo_del_paque_no_esta_corrupto`) y doc sin deriva (`tests/test_docs_readme.py`). Añadida en la fase 7 (`aplicar`): 21 pruebas en `tests/test_acciones_aplicar.py` — inferencia pura (`sugerir_alias`), fusión de reglas, EOF, colisión y deshacer — más el candado de banderas fantasma en el README. Añadida en la fase 7B (`verificar`): 26 pruebas en `tests/test_acciones_verificar.py` — cinco detectores, JSON, códigos de salida, papelera y restauración exacta por `deshacer` (una de ellas, la ruta relativa del log de poda, se corrigió durante la auditoría: ver §5). Dos fallos reales aparecieron durante la auditoría original y quedaron corregidos con regresión (ver §5).
 
@@ -153,7 +153,7 @@ Durante la auditoría aparecieron mutaciones reales, no hipotéticas:
 - Cobertura 93.64 %, no 100 %. Quedan ramas mayormente defensivas en `registro.py`, `organizador.py`, `acciones/aplicar.py` y `proveedor/api.py`.
 - No hay mutation testing automatizado; §5 documenta pruebas sensibles a mutaciones concretas, no una puntuación de mutantes.
 - No se prueba contra proveedores de IA reales: sería pago, no determinista y contradictorio con las restricciones del proyecto.
-- La matriz CI cubre Linux (3.10–3.13), macOS 14 y Windows (3.12/3.13). Las versiones recortadas en macOS/Windows se consideran cubiertas por la matriz Linux: la misma suite, mismos pasos.
+- La matriz CI cubre Linux (3.10–3.13) y Windows (3.12/3.13). macOS no se prueba: los runners `macos-*` de GitHub no están disponibles para cuentas gratuitas (los jobs se cancelan sin pasos); se prefiere honestidad a cobertura fingida.
 - Los mensajes exactos en humano están cubiertos por fragmentos (`in`), no por comparación byte a byte; la intención es detectar pérdida de información, no congelar redacción.
 - Las subprocess e2e dependen de `python -m organizador`, que es precisamente la forma instalable que se quiere auditar; por eso se aceptan ~0.3 s por prueba.
 
