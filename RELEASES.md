@@ -20,7 +20,10 @@ Pendiente de fusión:
   subproductos, vacíos, fuera de catálogo, atrapados) y `--podar
   --confirmar` desactiva duplicados a la papelera del historial con log
   `restaurar`; `deshacer` devuelve cada copia a su ruta original. ADR-005.
-- Suite ampliada a 217 pruebas; cobertura 93.19 % (margen sobre el 85 %).
+- Suite ampliada a 221 pruebas; cobertura 93.19 % (margen sobre el 85 %).
+- Fase 7C (misma rama): matriz CI Ubuntu/macOS/Windows, badge de
+  cobertura self-hosted (rama `badges` + script probado), `mypy` sobre
+  tests, job de construcción sdist+wheel y `py.typed`.
 
 ## v1.0 — entrega final
 

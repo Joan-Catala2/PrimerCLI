@@ -63,7 +63,7 @@ def test_readme_no_promete_variables_de_entorno_inexistentes():
 def test_readme_no_documenta_banderas_fantasma():
     """Toda bandera larga del bloque de uso existe en algún subparser."""
     parser = _construir_parser()
-    reales = set()
+    reales: set = set()
     for accion in parser._actions:
         if getattr(accion, "choices", None) and "accion" in str(
             getattr(accion, "dest", "")

@@ -9,6 +9,15 @@ def _logs(base):
     return sorted((base / "organizador-logs").glob("*.json"))
 
 
+def _posix(texto):
+    """Rutas de la salida humana como en POSIX: Windows usa ``\\``.
+
+    Se normaliza en la comparacion, no en la CLI: imprimir el separador
+    nativo es lo correcto para un usuario de Windows.
+    """
+    return texto.replace("\\", "/")
+
+
 def test_cli_escribe_log(tmp_path, monkeypatch, capsys):
     monkeypatch.chdir(tmp_path)
     origen = tmp_path / "descargas"
@@ -35,7 +44,9 @@ def test_cli_escribe_log(tmp_path, monkeypatch, capsys):
             ),
         }
     ]
-    assert "Programacion/Java/Programacion_java_tema1.pdf" in capsys.readouterr().out
+    assert "Programacion/Java/Programacion_java_tema1.pdf" in _posix(
+        capsys.readouterr().out
+    )
 
 
 def test_cli_simular_no_escribe_log(tmp_path, monkeypatch):

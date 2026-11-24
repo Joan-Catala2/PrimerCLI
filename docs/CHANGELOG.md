@@ -10,6 +10,19 @@ git `v1.0` corresponde a la entrega final; el número interno del paquete es
 
 ### Añadido
 
+- CI multiplataforma: la matriz cubre Ubuntu (Python 3.10–3.13) y Windows
+  (3.12/3.13), con el escáner de claves portable (`git ls-files -z |
+  xargs -0`). macOS queda fuera: los runners `macos-*` no están
+  disponibles en planes gratuitos y no se finge cobertura.
+- Escudo de cobertura self-hosted: el job `test` sube `coverage.xml`, el
+  job `badge` genera `data.json` (script `scripts/badge.py`, probado en
+  `tests/test_badge.py`) y lo publica en la rama `badges`; el README lo
+  pinta con shields.io en modo endpoint. Sin servicios externos.
+- `mypy` también sobre `tests` (con `py.typed` en el paquete y ajustes de
+  configuración); el pre-commit ejecuta `mypy src` y `mypy tests`.
+- Job `build`: `python -m build` de sdist+wheel con `twine check --strict`
+  y artefactos; los guiones de desarrollo (`check_secretos.py`, `badge.py`)
+  viajan en el sdist vía `data-files`.
 - Comando `verificar`: audita `Organizado/` — duplicados (SHA-256),
   subproductos del navegador (`doc (1).pdf`), carpetas vacías, carpetas
   fuera de catálogo y archivos "atrapados" en la raíz de una asignatura;

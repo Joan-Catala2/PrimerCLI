@@ -22,6 +22,11 @@ version = { attr = "organizador.__version__" }
 [tool.setuptools.packages.find]
 where = ["src"]
 
+[tool.setuptools.data-files]
+# el sdist viaja con los guiones de desarrollo (badge, scanner de claves):
+# son parte del contrato de calidad del paquete
+"share/organizador/scripts" = ["scripts/check_secretos.py", "scripts/badge.py"]
+
 [tool.setuptools.package-data]
 organizador = ["reglas.json"]
 
@@ -41,6 +46,25 @@ python_version = "3.10"
 check_untyped_defs = true
 warn_redundant_casts = true
 files = ["src"]
+
+# 3.11 tiene tomllib en stdlib; en 3.10 el dev extra lo instala como tomli,
+# y el import conditional del test es intencionado.
+[[tool.mypy.overrides]]
+module = ["tomllib", "tomli"]
+ignore_missing_imports = true
+
+# Las funciones de prueba no devuelven nada: anotar `-> None` en 200
+# funciones seria ruido. El chequeo de tipos en tests sigue siendo util
+# (dobles, argumentos y retornos de la API publica).
+[[tool.mypy.overrides]]
+module = "tests.*"
+disallow_untyped_defs = false
+disallow_incomplete_defs = false
+
+# `scripts/badge.py` se importa de la raiz del repo (sin paquetes en scripts)
+[[tool.mypy.overrides]]
+module = "scripts.badge"
+ignore_missing_imports = true
 
 [tool.coverage.run]
 source = ["src"]
