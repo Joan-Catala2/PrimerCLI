@@ -58,6 +58,98 @@ def test_matching_compacto_sin_falsos_positivos(nombre, esperado):
     assert clasificar(nombre) == esperado
 
 
+# --- contrato de la superficie publica de emparejamiento (ADR-002, fase 9B) --
+
+
+def test_coincide_token_secuencia_exacta():
+    from organizador.reglas import coincide_token, trocear
+
+    tokens = trocear("trabajo_de_sql_tema.pdf")
+    assert coincide_token(tokens, "sql")
+    assert coincide_token(tokens, "trabajo de sql")  # multi-palabra, normalizado
+    assert not coincide_token(tokens, "mysql")  # subcadena no es secuencia
+    assert not coincide_token(tokens, "IP")  # alias corto: solo palabra completa
+
+
+def test_coincide_pegado_delegado_del_motor():
+    from organizador.reglas import coincide_pegado, trocear
+
+    assert coincide_pegado(trocear("trabajosql.pdf"), "sql")
+    assert coincide_pegado(trocear("basededatos.pdf"), "Base de Datos")
+    # casos feos historicos: el compacto no es subcadena libre
+    assert not coincide_pegado(trocear("folder_apuntes.pdf"), "fol")
+    assert not coincide_pegado(trocear("recipe.pdf"), "ipe")
+    assert not coincide_pegado(trocear("digit.pdf"), "dit")
+    assert not coincide_pegado(trocear("ip_apuntes.pdf"), "ip")  # 2 letras: nunca
+
+
+def test_trocear_normaliza_y_separa_camelcase():
+    from organizador.reglas import trocear
+
+    assert trocear("Base_de_datos-Sql_Tema3.pdf") == [
+        "base",
+        "de",
+        "datos",
+        "sql",
+        "tema3",
+    ]
+    assert trocear("sin_extension") == ["sin", "extension"]
+    # camelCase roto sobre la parte: `basededatos` (todo minusculas) NO se
+    # rompe: un compacto todo minusculo no tiene senales de palabras
+    assert trocear("basededatos.pdf") == ["basededatos"]
+
+
+def test_publicas_y_privadas_no_se_contradicen():
+    """Lo que el motor detecta, la API publica lo confirma (sin inventar).
+
+    `aplicar` propone alias usando las publicas; si la publica dijera `si`
+    donde el motor dice `no`, la propuesta aceptada no clasificaría. El
+    motor recorre el catalogo en orden; aqui se recorre TAMBIEN en orden:
+    si la publica casa un alias, la asignatura ganadora del motor es esa
+    o una anterior en el catalogo (la publica puede ver mas, nunca menos).
+    """
+    from organizador.reglas import (
+        cargar_reglas,
+        coincide_pegado,
+        coincide_token,
+        explicar_match,
+        trocear,
+    )
+
+    catalogo = cargar_reglas()
+    nombres = [
+        "trabajosql.pdf",
+        "GithubApuntes.pdf",
+        "recipe.pdf",
+        "digit.pdf",
+        "hipotesis_tema2.pdf",
+        "tema4_ip.pdf",
+        "folder_apuntes.pdf",
+    ]
+    for nombre in nombres:
+        tokens = trocear(nombre)
+        detalle = explicar_match(nombre)
+        ganadora = detalle["asignatura"] if detalle else None
+        orden = [r.asignatura for r in catalogo]
+        for regla in catalogo:
+            for alias in regla.aliases:
+                casa = coincide_token(tokens, alias) or coincide_pegado(tokens, alias)
+                if casa:
+                    if ganadora is None:
+                        raise AssertionError(
+                            "{}: publica casa '{}' (de {}) pero el motor no clasifica".format(
+                                nombre, alias, regla.asignatura
+                            )
+                        )
+                    # ganadora del motor <= esta regla en el orden del catalogo
+                    assert orden.index(ganadora) <= orden.index(regla.asignatura), (
+                        "{}: publica casa '{}' pero el motor gana con '{}'".format(
+                            nombre, alias, ganadora
+                        )
+                    )
+                    return  # primera coincidencia confirmada: siguiente nombre
+
+
 def test_cargar_reglas_personalizadas(tmp_path):
     ruta = tmp_path / "reglas.json"
     ruta.write_text(

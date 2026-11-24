@@ -18,6 +18,13 @@ la etiqueta `v1.1` es la versión definitiva con fase 7 publicada (paquete
   suite que lo verifican (fábrica, README y `--help` e2e) y checklist. El
   README enlaza la guía. Responde al criterio "anadir una accion no exige
   tocar el codigo" haciendo el patron visible, no solo cierto.
+- `reglas.py` expone el contrato de emparejamiento (enmienda ADR-002):
+  `trocear`, `coincide_token` y `coincide_pegado` como superficie pública
+  documentada; `_coincide`/`_pega` pasan a ser adaptadores internos sobre
+  ellas (decisión idéntica, el motor no cambia). `aplicar` deja de importar
+  privados (`_pega`/`_tokens` y su truco de join) y consume las públicas.
+  Nuevas pruebas de contrato en `tests/test_reglas.py` (incluida la no
+  contradicción motor/pública recorriendo el catálogo en orden).
 
 ## [2.6.0] — 2026-11-27 (etiqueta git `v1.2`)
 

@@ -53,6 +53,25 @@ opciones) y rechaza configuraciones imposibles (`ErrorDeUso`,
   un `type: ignore[attr-defined]` acotado (mypy no sabe que el valor del
   dict es una subclase de `Accion`).
 
+## Enmienda (fase 9B): superficie publica de emparejamiento
+
+Una accion propia (`aplicar`) necesita reutilizar el emparejamiento de
+`reglas.py` sin duplicarlo. Para que "una accion nueva = una clase" no
+implique importar privados, `reglas.py` expone un contrato estable:
+
+- `trocear(nombre) -> tokens` (normalizados, camelCase roto);
+- `coincide_token(tokens, alias)` (secuencia de palabras);
+- `coincide_pegado(tokens, alias)` (compacto con las reglas anti-falso-
+  positivo historicas: 4+ en cualquier extremo, 3 final tras vocal, 2 nunca).
+
+Lo demas (`_partes`, `_pega`, `_coincide`) es interno: `explicar_match` y
+`clasificar` siguen siendo la decision del motor. El contrato de
+`coincide_pegado` documenta la diferencia fina con `_pega` (tokens
+troceados vs compacto del nombre): la publica JAMAS produce un falso
+positivo que el motor no produzca; en la otra direccion puede ver mas
+(depurado con `test_publicas_y_privadas_no_se_contradicen`). La guia
+`docs/como-anadir-una-accion.md` remite a esta superficie.
+
 ## Alternativas descartadas
 
 - **Handlers de funcion sueltos** (`def cmd_ejecutar(args)`): menos

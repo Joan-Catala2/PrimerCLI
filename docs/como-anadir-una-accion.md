@@ -110,6 +110,16 @@ feliz y sus casos feos (lista vacía, nombre raro, unicode), y la entrada en
 5. [ ] Prueba propia (feliz + feos) y actualización del candado de `--help`.
 6. [ ] `CHANGELOG.md` y, si decide algo de diseño, un ADR nuevo.
 
+## Si necesitas emparejar nombres (no reinventes la rueda)
+
+`reglas.py` expone el contrato de emparejamiento (enmienda del ADR-002):
+`trocear(nombre)` (tokens normalizados, camelCase roto), `coincide_token
+(tokens, alias)` y `coincide_pegado(tokens, alias)` — las mismas
+decisiones que toma `clasificar`, sin importar privados. `aplicar` es el
+ejemplo de consumo. Nunca copies la lógica de anti-falsos-positivos: si
+las publicas no te bastan, propon una función nueva en `reglas.py` con su
+test de contrato.
+
 Si el criterio del curso dice "anadir una acción no exige tocar el código",
 esta guía es la respuesta: se **añade**, no se **modifica** el núcleo. Los
 únicos toques fuera de tu fichero son un `import`, una línea de diccionario
