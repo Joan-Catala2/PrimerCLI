@@ -6,9 +6,9 @@ Resumen ejecutivo de la suite, mapa requisito → prueba → caso feo, sensibili
 
 | Métrica | Valor |
 |---|---|
-| Pruebas recopiladas | 255 |
-| Resultado | 255 passed, 0 failed, 0 skipped |
-| Cobertura global | 92.98 % (2009 sentencias, 141 sin cubrir) |
+| Pruebas recopiladas | 259 |
+| Resultado | 259 passed, 0 failed, 0 skipped |
+| Cobertura global | 92.99 % (2012 sentencias, 141 sin cubrir) |
 | Umbral CI | 85 % (`--cov-fail-under=85`) |
 | Archivos con cobertura completa | 10 de 26 (los 16 restantes tienen ≥1 línea) |
 | Tiempo local | ≈ 2.5 s en Python 3.10.12 |
@@ -56,14 +56,15 @@ La suite no necesita red, credenciales reales ni servicios externos. `urlopen` s
 | `acciones/revisar.py` | 163 | 14 | 91 % | EOF/cancelaciones y ramas de interacción |
 | `acciones/sugerir.py` | 111 | 4 | 96 % | Aviso IA no configurada y variantes de presentación |
 | `acciones/verificar.py` | 218 | 13 | 94 % | Defensas de IO (hash ilegible, papelera ausente) y ramas de aviso |
-| `cli.py` | 93 | 2 | 98 % | Líneas 348/377 cubiertas por subprocess real; 377 es el `if __name__` del módulo || `contenido.py` | 74 | 2 | 97 % | Dos ramas defensivas de lectura (`is_encrypted` y página `None`) |
+| `cli.py` | 93 | 2 | 98 % | Líneas 348/377 cubiertas por subprocess real; 377 es el `if __name__` del módulo |
+| `contenido.py` | 74 | 2 | 97 % | Dos ramas defensivas de lectura (`is_encrypted` y página `None`) |
 | `organizador.py` | 180 | 16 | 91 % | Defensas de MOV/formatos raros y `main` delegado |
 | `presentacion/consola.py` | 66 | 4 | 94 % | Ramas de confirmación/aviso en errores extraños |
 | `proveedor/api.py` | 97 | 8 | 92 % | Validaciones defensivas de respuestas malformadas |
 | `proveedor/base.py` | 38 | 1 | 97 % | Método abstracto nunca instanciado |
 | `registro.py` | 75 | 9 | 88 % | Rutas relativas, logs corruptos y sobreescritura defensiva |
-| `reglas.py` | 153 | 12 | 92 % | Validaciones defensivas de reglas |
-| **TOTAL** | **2009** | **141** | **92.98 %** | — |
+| `reglas.py` | 156 | 12 | 92 % | Validaciones defensivas de reglas |
+| **TOTAL** | **2012** | **141** | **92.99 %** | — |
 
 Nota: los otros 10 módulos del paquete (`__init__.py`, `__main__.py`,
 `excepciones.py`, `acciones/__init__.py`, `acciones/base.py`,
@@ -121,6 +122,7 @@ en los e2e de subprocess, y la 377 se ejercita via `runpy` en
 | Contenido de PDF (CLI) | `tests/test_contenido.py::test_ejecutar_contenido_con_pdf_real`, `test_ejecutar_contenido_json_muestra_origen`, `test_ejecutar_sin_contenido_ignora_el_pdf`, `test_revisar_interactivo_marca_contenido_en_el_prompt`, `test_explicar_contenido_fuente_contenido`, `test_contenido_max_paginas_invalido_es_error_de_uso`, `tests/test_acciones.py::test_ejecutar_con_contenido_inyecta_extractor` | `--contenido` no mueve; el JSON no dice el origen; sin flag se lee contenido; la marca falta; `explicar` miente; `--contenido-max-paginas 0` no falla al construir |
 | Catalogo de reglas empaquetado | `tests/test_reglas.py::test_catalogo_del_paque_no_esta_corrupto`, `test_cada_asignatura_del_catalogo_se_detecta_por_su_nombre` | Alias vacio o duplicado en `reglas.json` rompe la clasificacion sin romper tests de logica |
 | Doc sin deriva | `tests/test_docs_readme.py::test_readme_documenta_el_comando`, `test_parser_expone_los_comandos_del_readme`, `test_readme_no_promete_variables_de_entorno_inexistentes`, `test_readme_no_documenta_banderas_fantasma` | Comando nuevo sin documentar, env var fantasma o bandera inventada en el README |
+| Contrato de emparejamiento | `tests/test_reglas.py::test_trocear_normaliza_y_separa_camelcase`, `test_coincide_token_secuencia_exacta`, `test_coincide_pegado_delegado_del_motor`, `test_publicas_y_privadas_no_se_contradicen` | `trocear` rompe camelCase donde no hay señales (`basededatos` en un token); alias de 2 letras colándose por la puerta pegada; la pública inventando coincidencias que el motor no produce (la prueba recorre el catálogo en orden: si la pública casa, la ganadora del motor es esa o anterior) |
 | Aplicar (aprender alias) | `tests/test_acciones_aplicar.py::test_propone_alias_largo_tras_asignatura`, `test_token_generico_no_propone_nada`, `test_unico_token_corto_no_propone`, `test_empate_entre_asignaturas_no_propone`, `test_alias_de_tema_cuenta_como_evidencia` | Alias inventado a partir de `tema3`, `x2` o tokens cortos; `poo` propuesto pese a ser variante de `pseudocodigo` |
 | Aplicar (confirmar/guardar) | `test_propuesta_sin_confirmar_no_toca_reglas_ni_mueve`, `test_confirmar_guarda_alias_fusionando_con_previas`, `test_rechazar_no_escribe_nada`, `test_eof_a_mitad_no_escribe_nada`, `test_aplicar_con_reglas_propias_guarda_en_el_mismo_fichero` | `aplicar` escribe sin preguntar; el EOF a mitad deja reglas a medias; `--reglas` guarda fuera del fichero del usuario |
 | Aplicar (reorganizar) | `test_reorganizar_mueve_con_alias_nuevos_y_deja_log_deshacible`, `test_reorganizar_respeta_el_sufijo_anti_colision`, `test_seco_solo_imprime_resumen`, `test_json_de_aplicar_es_valido`, `test_sin_carpeta_revision_json_valido_y_codigo_cero` | `deshacer` no revierte el `--reorganizar`; colisión de destinos pisa un archivo; JSON roto o stdout sucio |

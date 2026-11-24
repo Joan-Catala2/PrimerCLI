@@ -6,9 +6,11 @@ paquete sigue [Semantic Versioning](https://semver.org/lang/es/). La etiqueta
 git `v1.0` corresponde a la entrega final del proyecto (paquete `2.4.0`);
 la etiqueta `v1.1` es la versión definitiva con fase 7 publicada (paquete
 `2.5.0`); la etiqueta `v1.2` añade la fase 8 (PDFs por contenido, paquete
-`2.6.0`, el que muestra `organizador --version`).
+`2.6.0`); la etiqueta `v1.3` publica la fase 9 (guía de extensión y
+superficie pública de emparejamiento, paquete `2.6.1`, el que muestra
+`organizador --version`).
 
-## [Sin publicar]
+## [2.6.1] — 2026-11-27 (etiqueta git `v1.3`, fase 9)
 
 ### Añadido
 
@@ -27,26 +29,6 @@ la etiqueta `v1.1` es la versión definitiva con fase 7 publicada (paquete
   contradicción motor/pública recorriendo el catálogo en orden).
 
 ## [2.6.0] — 2026-11-27 (etiqueta git `v1.2`)
-
-### Añadido
-
-- Fase 8 (`--contenido`, ADR-006): `ejecutar`, `revisar` y `explicar`
-  pueden clasificar por el texto de las primeras páginas de un PDF cuando
-  el nombre no clasifica. Opt-in con `--contenido` (y
-  `--contenido-max-paginas N`, por defecto 3); sin el flag el
-  comportamiento es idéntico a la v1.1. El emparejamiento usa fronteras de
-  palabra (nada de `mysql` → `sql`) e ignora alias de 1–2 letras (temas
-  `1`, `T1`): texto continuo, menos señales que un nombre de archivo. El
-  nombre siempre manda: el contenido solo rescata lo que iría a
-  `_revision`. En `revisar --interactivo` la sugerencia por contenido
-  aparece marcada como `(contenido)`, y cada movimiento del JSON/log lleva
-  el campo `origen` (`nombre` o `contenido`).
-- Extra opcional `organizador[pdf]` (`pypdf`, BSD, pure python): el paquete
-  base sigue siendo stdlib puro; sin el extra, `--contenido` responde un
-  error humano con el comando de instalación. La suite de desarrollo lo
-  instala (`.[dev]`) y genera sus propios PDFs de prueba.
-
-## [Sin publicar]
 
 ### Añadido
 
