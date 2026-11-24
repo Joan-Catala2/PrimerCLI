@@ -6,11 +6,47 @@ la etiqueta `v1.2` añade la fase 8 (clasificación opcional por el texto de
 los PDF); la etiqueta `v1.3` publica la fase 9 (documentación de extensión
 y superficie pública de emparejamiento, sin cambios de comportamiento). El
 número interno del paquete conserva la cronología `2.x`
-(`organizador --version` muestra `2.6.1`).
+(`organizador --version` muestra `2.6.2`).
 
 El detalle línea a línea de cada versión vive en
 [docs/CHANGELOG.md](docs/CHANGELOG.md). Esta página resume las entregas y sus
 verificaciones.
+
+## v1.3.1 — fase 10: auditoría del sdist (parche)
+
+- **Fecha**: 2026-11-27
+- **Tag**: `v1.3.1`
+- **Base técnica**: `2ae0380` (PR #19 + guía de defensa 9.5 fusionada en la
+  rama); el tag apunta al commit de release.
+- **Paquete**: `organizador` 2.6.2
+- **Python**: 3.8+ (CI verificada en Ubuntu 3.10–3.13 y Windows 3.12/3.13)
+
+Parche sin cambios de comportamiento. La promesa "se instala con una orden"
+ pasa de fe en el README a prueba ejecutada: `tests/test_paquete.py`
+construye el sdist del repo, lo instala en un venv real y ejerce el contrato
+del extra `[pdf]` sobre el artefacto (versión, error humano sin el extra,
+flujo con él). CI: la matriz excluye la marca `lento`; `lint` la corre.
+
+### Contenido
+
+- `tests/test_paquete.py` (1 prueba `lento`, ~10 s): sin red
+  (`--no-isolation`, `--no-index`, `pypdf` copiado como rueda local);
+  `skip` honesto si no se puede crear un venv útil.
+- `docs/guion-defensa.md` (fase 9.5, fusionada en rama sin etiqueta): 12
+  respuestas de defensa con `archivo:linea`.
+- Marca `lento` registrada; workflow actualizado.
+
+### Verificación (commit de release)
+
+| Comprobación | Resultado |
+|---|---|
+| `ruff check .` / `ruff format --check .` | limpio |
+| `mypy src` / `mypy tests` | limpio |
+| `pytest -m "not lento" --cov=organizador --cov-fail-under=85` | 259 passed, 92.99 % |
+| `pytest tests/test_paquete.py -m lento` | 1 passed (venv real, sin red) |
+| `git ls-files -z \| xargs -0 python scripts/check_secretos.py` | limpio |
+| CI en `main` post-fusión | verde (matriz completa) |
+| Auditoría detallada | `docs/auditoria-tests.md` |
 
 ## v1.3 — fase 9: extensible y desacoplada (parche)
 

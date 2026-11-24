@@ -10,15 +10,9 @@ la etiqueta `v1.1` es la versión definitiva con fase 7 publicada (paquete
 superficie pública de emparejamiento, paquete `2.6.1`, el que muestra
 `organizador --version`).
 
-## [Sin publicar]
+## [2.6.2] — 2026-11-27 (etiqueta git `v1.3.1`, fase 10)
 
 ### Añadido
-
-- Guía de defensa `docs/guion-defensa.md`: 12 respuestas cortas para
-  sustentar el proyecto en vivo (arquitectura, fábrica, 5 aserciones duras,
-  excepciones/códigos, `afirmar` vs `assert`, capas, IA, sin sorpresas,
-  `--contenido`, release, ciclo del log y preguntas trampa), cada una con
-  su `archivo:linea`. Enlazada desde la auditoría del README. Fase 9.5.
 
 - Auditoría del **paquete publicado** (`tests/test_paquete.py`, marca
   `lento`): construye el sdist del repo, lo instala en un venv real y
@@ -28,6 +22,12 @@ superficie pública de emparejamiento, paquete `2.6.1`, el que muestra
   matriz de tests la excluye (`-m "not lento"`); el job `lint` la corre.
   Se auto-salta con honestidad si el interprete no puede crear venvs o si
   `pypdf` vive dentro de él.
+- Guía de defensa `docs/guion-defensa.md` (fase 9.5, fusionada en la rama
+  sin etiqueta): 12 respuestas cortas para sustentar el proyecto en vivo
+  (arquitectura, fábrica, 5 aserciones duras, excepciones/códigos, `afirmar`
+  vs `assert`, capas, IA, sin sorpresas, `--contenido`, release, ciclo del
+  log y preguntas trampa), cada una con su `archivo:linea`. Enlazada desde
+  la auditoría del README.
 
 ### Cambiado
 
