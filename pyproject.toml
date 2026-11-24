@@ -14,7 +14,8 @@ license = { text = "MIT" }
 organizador = "organizador.cli:main"
 
 [project.optional-dependencies]
-dev = ["pytest>=7", "pytest-cov", "ruff", "mypy", "pre-commit", 'tomli; python_version < "3.11"']
+pdf = ["pypdf>=4,<8"]
+dev = ["pytest>=7", "pytest-cov", "ruff", "mypy", "pre-commit", 'tomli; python_version < "3.11"', 'organizador[pdf]']
 
 [tool.setuptools.dynamic]
 version = { attr = "organizador.__version__" }
@@ -51,6 +52,12 @@ files = ["src"]
 # y el import conditional del test es intencionado.
 [[tool.mypy.overrides]]
 module = ["tomllib", "tomli"]
+ignore_missing_imports = true
+
+# `pypdf` es un extra opcional: el paquete base funciona sin el y el
+# import es diferido (contenido.py); mypy no debe exigir tenerlo instalado.
+[[tool.mypy.overrides]]
+module = "pypdf.*"
 ignore_missing_imports = true
 
 # Las funciones de prueba no devuelven nada: anotar `-> None` en 200

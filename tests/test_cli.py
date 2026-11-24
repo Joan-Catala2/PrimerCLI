@@ -42,6 +42,7 @@ def test_cli_escribe_log(tmp_path, monkeypatch, capsys):
             "destino": str(
                 salida / "Programacion" / "Java" / "Programacion_java_tema1.pdf"
             ),
+            "origen": "nombre",
         }
     ]
     assert "Programacion/Java/Programacion_java_tema1.pdf" in _posix(

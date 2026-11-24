@@ -30,6 +30,7 @@ def test_organiza_archivo_en_asignatura_y_tema(tmp_path):
             "asignatura": "Programacion",
             "tema": "Java",
             "destino": str(destino),
+            "origen": "nombre",
         }
     ]
 

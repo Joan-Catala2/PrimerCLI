@@ -53,6 +53,8 @@ def _args(**datos):
         reorganizar=False,
         podar=False,
         nombre="ejemplo.pdf",
+        contenido=False,
+        contenido_max_paginas=3,
     )
     base.update(datos)
     return argparse.Namespace(**base)
@@ -145,3 +147,37 @@ def test_ejecutar_reusa_las_reglas_ya_cargadas(tmp_path):
     )
     assert [r.asignatura for r in accion.reglas] == ["X"]  # type: ignore[attr-defined]
     assert accion.opciones["reglas"] is accion.reglas  # type: ignore[attr-defined]
+
+
+# --- flags de contenido (ADR-006) -----------------------------------------
+
+
+def test_ejecutar_con_contenido_inyecta_extractor(tmp_path):
+    """`--contenido` convierte la bandera en un extractor real en las opts."""
+    accion = Acciones.desde_config(_args(accion="ejecutar", contenido=True), _consola())
+    assert callable(accion.opciones.get("extractor"))  # type: ignore[attr-defined]
+
+
+def test_ejecutar_sin_contenido_no_inyecta_extractor(tmp_path):
+    accion = Acciones.desde_config(_args(accion="ejecutar"), _consola())
+    assert "extractor" not in accion.opciones  # type: ignore[attr-defined]
+
+
+def test_contenido_max_paginas_invalido_falla_antes_de_tocar_nada():
+    from organizador.excepciones import ErrorDeUso
+
+    with pytest.raises(ErrorDeUso):
+        Acciones.desde_config(
+            _args(accion="ejecutar", contenido=True, contenido_max_paginas=0),
+            _consola(),
+        )
+
+
+def test_revisar_con_contenido_inyecta_extractor():
+    accion = Acciones.desde_config(_args(accion="revisar", contenido=True), _consola())
+    assert callable(accion.extractor)  # type: ignore[attr-defined]
+
+
+def test_explicar_con_contenido_inyecta_extractor():
+    accion = Acciones.desde_config(_args(accion="explicar", contenido=True), _consola())
+    assert callable(accion.extractor)  # type: ignore[attr-defined]
