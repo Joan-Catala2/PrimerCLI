@@ -6,8 +6,8 @@ Resumen ejecutivo de la suite, mapa requisito → prueba → caso feo, sensibili
 
 | Métrica | Valor |
 |---|---|
-| Pruebas recopiladas | 259 |
-| Resultado | 259 passed, 0 failed, 0 skipped |
+| Pruebas recopiladas | 260 (259 rapidas + 1 `lento`) |
+| Resultado | 260 passed, 0 failed, 0 skipped (rapidas: 259) |
 | Cobertura global | 92.99 % (2012 sentencias, 141 sin cubrir) |
 | Umbral CI | 85 % (`--cov-fail-under=85`) |
 | Archivos con cobertura completa | 10 de 26 (los 16 restantes tienen ≥1 línea) |
@@ -28,13 +28,28 @@ pip install -e ".[dev]"
 ruff check .
 ruff format --check .
 mypy src
-pytest --cov=organizador --cov-report=term-missing --cov-fail-under=85
+pytest -m "not lento" --cov=organizador --cov-report=term-missing --cov-fail-under=85
 python3 scripts/check_secretos.py $(git ls-files)
 ```
 
 El workflow usa `git ls-files -z | xargs -0 ...` (portable en las tres
 plataformas); el `pre-commit` local mantiene `entry` por separado para
-`mypy src` y `mypy tests`.
+`mypy src` y `mypy tests`. La matriz de tests excluye la marca `lento`.
+
+### Auditoria del paquete publicado (marca `lento`)
+
+`tests/test_paquete.py` no toca el arbol `src/`: construye el **sdist**
+del repo (`python -m build --no-isolation`), lo instala (vía rueda) en un
+**venv real** (creado con `python -m venv` o `virtualenv`) y ejerce el
+contrato de la release en el artefacto: `--version` coincide con el
+modulo, `--contenido` sin el extra `[pdf]` devuelve 2 con el mensaje de
+instalacion (el mismo error humano que los unitarios simulan con dobles
+de import) y, con el extra, un PDF real se organiza por contenido. Como
+necesita venv + build + ~1 min, va marcado `lento`: la matriz de tests lo
+excluye (`pytest -m "not lento"`, para que la cobertura no se vea
+distorsionada por subprocess) y el job `lint` lo ejecuta explicitamente.
+Si el interprete no puede crear venvs o `pypdf` vive dentro de el, el
+test hace `skip` honesto — nunca falso verde.
 
 Para ver la prueba lenta:
 
@@ -42,7 +57,7 @@ Para ver la prueba lenta:
 pytest tests -q --durations=5
 ```
 
-La suite no necesita red, credenciales reales ni servicios externos. `urlopen` se sustituye por un doble en `tests/test_proveedor.py`; la clave de prueba es `clave-de-prueba-no-real`.
+La suite no necesita red, credenciales reales ni servicios externos (la auditoría del sdist instala de `--no-index`, con el `pypdf` copiado como rueda local). `urlopen` se sustituye por un doble en `tests/test_proveedor.py`; la clave de prueba es `clave-de-prueba-no-real`.
 
 ## 3. Cobertura por módulo
 
@@ -116,6 +131,8 @@ en los e2e de subprocess, y la 377 se ejercita via `runpy` en
 | Sin fugas de clave | `tests/test_proveedor.py::test_desde_env_con_configuracion_no_revela_la_clave`, `tests/test_secretos.py::test_detecta_una_clave_con_patron_conocido`, `test_detecta_tokens_de_otros_proveedores`, `test_env_example_solo_contiene_nombres_vacios`, e2e con `CLAVE-FALSA-SIN-FORMATO` | `repr`/`str`, stdout o git contienen la credencial |
 | Version con una sola fuente | `tests/test_cli.py::test_version_de_instalacion_igual_a_la_del_paquete`, `test_version_del_pyproject_es_dinamica` | Alguien fija `version` en el TOML y el `--version` instalado diverge del módulo |
 | Escudo de cobertura | `tests/test_badge.py::test_porcentaje_y_color_bueno`, `test_por_debajo_del_umbral_en_rojo`, `test_xml_roto_es_error_de_cl` | El badge miente (verde con <85 %) o el workflow revienta con un XML inesperado |
+| Paquete publicado (`lento`) | `tests/test_paquete.py::test_sdist_instalado_sin_extra_y_con_extra` | El artefacto de la release no se instala, `--version` diverge del modulo, o `--contenido` sin el extra `[pdf]` no da el error humano de instalacion (los unitarios lo simulan con un doble; este lo prueba en un venv real) |
+| Paquete publicado (`lento`) | `tests/test_paquete.py::test_sdist_instalado_sin_extra_y_con_extra` | El artefacto de la release no se instala, `--version` diverge del modulo, o `--contenido` sin el extra `[pdf]` no da el error humano de instalacion (los unitarios lo simulan con un doble; este lo prueba en un venv real) |
 | Contenido de PDF (lector) | `tests/test_contenido.py::test_texto_pdf_respeta_max_paginas`, `test_texto_pdf_valida_max_paginas`, `test_texto_pdf_trunca_sin_reventar`, `test_texto_pdf_sin_extra_es_error_humano`, `test_texto_pdf_con_archivo_basura_es_fallo_previsto` | `--contenido` revienta con un PDF raro, lee mas paginas de las pedidas, o pide instalar algo que no existe |
 | Contenido de PDF (reglas) | `tests/test_contenido.py::test_mysql_no_es_sql`, `test_tema_detectado_con_frontera`, `test_alias_inutil_no_participa`, `test_clasifica_con_las_reglas_del_paquete_por_defecto` | Un subcadena convierte `mysql` en `BaseDeDatos`; el escudo deja de reportar el catalogo real |
 | Contenido de PDF (motor) | `tests/test_contenido.py::test_el_nombre_manda_aunque_el_contenido_diga_otra_cosa`, `test_extractor_no_toca_los_no_pdf`, `test_extractor_ilegible_avisa_y_sigue_a_revision` | El contenido pisa una clasificacion por nombre; se leen txts; un PDF ilegible aborta la pasada |

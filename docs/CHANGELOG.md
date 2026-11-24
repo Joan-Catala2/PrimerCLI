@@ -20,6 +20,25 @@ superficie pública de emparejamiento, paquete `2.6.1`, el que muestra
   `--contenido`, release, ciclo del log y preguntas trampa), cada una con
   su `archivo:linea`. Enlazada desde la auditoría del README. Fase 9.5.
 
+## [Sin publicar]
+
+### Añadido
+
+- Auditoría del **paquete publicado** (`tests/test_paquete.py`, marca
+  `lento`): construye el sdist del repo, lo instala en un venv real y
+  ejerce el contrato de la release en el artefacto — `--version` igual al
+  módulo, `--contenido` sin el extra `[pdf]` devolviendo 2 con el mensaje
+  de instalación, y con el extra un PDF real organizado por contenido. La
+  matriz de tests la excluye (`-m "not lento"`); el job `lint` la corre.
+  Se auto-salta con honestidad si el interprete no puede crear venvs o si
+  `pypdf` vive dentro de él.
+
+### Cambiado
+
+- La suite rapida es `pytest -m "not lento"` (259 pruebas). La nueva
+  auditoria no distorsiona la cobertura (subprocess no instrumentado):
+  viaja en `lint`.
+
 ## [2.6.1] — 2026-11-27 (etiqueta git `v1.3`, fase 9)
 
 ### Añadido
