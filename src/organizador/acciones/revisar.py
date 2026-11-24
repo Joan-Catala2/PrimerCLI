@@ -4,8 +4,15 @@ La parte interactiva sigue el mismo guion que en la v2.2: Enter acepta la
 sugerencia, `-` quita el tema, `q` termina y un EOF deja el resto en
 revision sin perder nada. El codigo 130 (cancelado por el usuario) se
 conserva por compatibilidad.
+
+Con `--contenido` (ADR-006), si el nombre del archivo no sugiere ninguna
+asignatura se lee el PDF y esa sugerencia sale entre parentesis para no
+confundirse con la deteccion por nombre.
 """
 
+from pathlib import Path
+
+from ..excepciones import ErrorDeUso
 from ..organizador import limpiar_vacias, mover_archivo
 from ..reglas import REVISION, clasificar
 from .base import Accion
@@ -33,23 +40,36 @@ class _SinCambio(Exception):
 class AccionRevisar(Accion):
     nombre = "revisar"
 
-    def __init__(self, consola, salida, reglas, interactivo=False):
+    def __init__(self, consola, salida, reglas, interactivo=False, extractor=None):
         super().__init__(consola)
         self.salida = salida
         self.reglas = reglas
         self.interactivo = interactivo
+        self.extractor = extractor
 
     @classmethod
     def desde_config(cls, args, consola):
-        from pathlib import Path
-
         from ..reglas import reglas_efectivas
+
+        extractor = None
+        if getattr(args, "contenido", False):
+            from ..contenido import texto_pdf
+
+            max_paginas = args.contenido_max_paginas
+            if max_paginas < 1:
+                raise ErrorDeUso("--contenido-max-paginas debe ser 1 o mas.")
+
+            def extraer(ruta):
+                return texto_pdf(ruta, max_paginas)
+
+            extractor = extraer
 
         return cls(
             consola=consola,
             salida=Path(args.salida).resolve(),
             reglas=reglas_efectivas(args.reglas),
             interactivo=args.interactivo,
+            extractor=extractor,
         )
 
     def ejecutar(self):
@@ -111,8 +131,8 @@ class AccionRevisar(Accion):
             consola.linea()
             consola.linea("[{}/{}] {}".format(numero, len(archivos), archivo.name))
 
-            sugerencia = clasificar(archivo.name, self.reglas)
-            sug_asignatura, sug_tema = sugerencia if sugerencia else ("", "")
+            sugerencia = self._sugerir(archivo)
+            sug_asignatura, sug_tema, sug_origen = sugerencia
 
             try:
                 asignatura, tema = self._preguntar_destino(
@@ -120,6 +140,7 @@ class AccionRevisar(Accion):
                     temas_por_asignatura,
                     sug_asignatura,
                     sug_tema,
+                    sug_origen,
                 )
             except _SinCambio:
                 continue
@@ -148,8 +169,34 @@ class AccionRevisar(Accion):
 
         return self._cierre(carpeta, archivos, movidos, cancelado, salir)
 
+    # --- sugerencias -------------------------------------------------------
+
+    def _sugerir(self, archivo):
+        """(asignatura, tema, origen) para un archivo de _revision.
+
+        El nombre manda; si no dice nada y hay extractor, se prueba con el
+        contenido del PDF. Un PDF ilegible avisa por stderr y no rompe la
+        sesion. `origen` es 'nombre', 'contenido' o '' (sin sugerencia).
+        """
+        sugerencia = clasificar(archivo.name, self.reglas)
+        if sugerencia is not None:
+            return sugerencia[0], sugerencia[1], "nombre"
+        if self.extractor is None or not archivo.name.lower().endswith(".pdf"):
+            return "", "", ""
+        from ..contenido import ExtraccionFallida, clasificar_por_contenido
+
+        try:
+            texto = self.extractor(archivo)
+        except (ExtraccionFallida, OSError) as error:
+            self.consola.aviso("Aviso: {}: {}".format(archivo.name, error))
+            return "", "", ""
+        pareja, _ = clasificar_por_contenido(texto, self.reglas)
+        if pareja is None:
+            return "", "", ""
+        return pareja[0], pareja[1], "contenido"
+
     def _preguntar_destino(
-        self, asignaturas, temas_por_asignatura, sug_asignatura, sug_tema
+        self, asignaturas, temas_por_asignatura, sug_asignatura, sug_tema, sug_origen=""
     ):
         """Una ronda de preguntas -> (asignatura, tema).
 
@@ -160,8 +207,9 @@ class AccionRevisar(Accion):
         consola = self.consola
 
         if sug_asignatura:
-            pregunta = "Asignatura [{}] (Enter para aceptar, q para salir): "
-            pregunta = pregunta.format(sug_asignatura)
+            sufijo = " (contenido)" if sug_origen == "contenido" else ""
+            pregunta = "Asignatura [{}]{} (Enter para aceptar, q para salir): "
+            pregunta = pregunta.format(sug_asignatura, sufijo)
         else:
             pregunta = "Asignatura (Enter para saltar, q para salir): "
         respuesta = consola.preguntar(pregunta).strip()

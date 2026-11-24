@@ -3,6 +3,10 @@
 Combina la prueba documental de `reglas.json` (alias y tipo de coincidencia)
 con una frase del proveedor de IA si está disponible. Si la IA falla, se
 muestra igualmente la explicación local y se avisa por stderr.
+
+Con `--contenido` (ADR-006), si el nombre es un PDF sin coincidencia en las
+reglas, se intenta explicar (y mostrar) la clasificacion por el texto del
+documento: `Fuente: contenido`.
 """
 
 from pathlib import Path
@@ -18,12 +22,13 @@ class AccionExplicar(Accion):
 
     nombre = "explicar"
 
-    def __init__(self, consola, archivo, salida, reglas, proveedor):
+    def __init__(self, consola, archivo, salida, reglas, proveedor, extractor=None):
         super().__init__(consola)
         self.archivo = archivo
         self.salida = salida
         self.reglas = reglas
         self.proveedor = proveedor
+        self.extractor = extractor
 
     @classmethod
     def desde_config(cls, args, consola):
@@ -32,17 +37,49 @@ class AccionExplicar(Accion):
         nombre = getattr(args, "nombre", "")
         if not nombre:
             raise ErrorDeUso("explicar necesita un nombre de archivo.")
+        extractor = None
+        if getattr(args, "contenido", False):
+            from ..contenido import texto_pdf
+
+            max_paginas = args.contenido_max_paginas
+            if max_paginas < 1:
+                raise ErrorDeUso("--contenido-max-paginas debe ser 1 o mas.")
+            ruta_pdf = Path(nombre)
+
+            def extraer():
+                return texto_pdf(ruta_pdf, max_paginas)
+
+            extractor = extraer
         return cls(
             consola=consola,
             archivo=Path(nombre).name,
             salida=Path(args.salida).resolve(),
             reglas=reglas_efectivas(args.reglas),
             proveedor=ProveedorIA.desde_env(),
+            extractor=extractor,
         )
+
+    def _coincidencia_por_contenido(self, nombre):
+        """Explicacion por texto del PDF: `--contenido` con un nombre que
+        no clasifica. Sin extractor, sin .pdf o con lectura fallida, None
+        (el aviso corre a cargo del extractor; aqui no se interrumpe nada).
+        """
+        if self.extractor is None or not nombre.lower().endswith(".pdf"):
+            return None
+        from ..contenido import ExtraccionFallida, clasificar_por_contenido
+
+        try:
+            texto = self.extractor()
+        except (ExtraccionFallida, OSError):
+            return None
+        _, detalle = clasificar_por_contenido(texto, self.reglas)
+        return detalle
 
     def ejecutar(self):
         nombre = Path(self.archivo).name
         coincidencia = explicar_match(nombre, self.reglas)
+        if coincidencia is None:
+            coincidencia = self._coincidencia_por_contenido(nombre)
         asignatura = coincidencia["asignatura"] if coincidencia else ""
         tema = coincidencia["tema"] if coincidencia else ""
         razon_local = (
@@ -55,6 +92,14 @@ class AccionExplicar(Accion):
         )
         destino = "{}/{}".format(asignatura, tema) if tema else asignatura
         destino = destino or REVISION
+
+        if coincidencia is not None and coincidencia.get("origen") == "contenido":
+            explicacion = Explicacion(
+                texto=coincidencia["razon"],
+                fuente="contenido",
+                razon_local=coincidencia["razon"],
+            )
+            return self._mostrar(nombre, destino, explicacion)
 
         try:
             explicacion = self.proveedor.explicar(nombre, destino, self.reglas)

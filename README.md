@@ -4,8 +4,8 @@
 [![cobertura](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/Joan-Catala2/PrimerCLI/badges/data.json)](https://github.com/Joan-Catala2/PrimerCLI/actions/workflows/tests.yml)
 
 CLI que organiza archivos descargados (apuntes, PDFs, enunciados...) en
-carpetas por **asignatura** y **tema**, usando únicamente el nombre del
-archivo.
+carpetas por **asignatura** y **tema**, usando el nombre del archivo y,
+opcionalmente, el contenido de los PDF.
 
 Documentación: [historial de releases](RELEASES.md) ·
 [cambios por versión](docs/CHANGELOG.md) ·
@@ -31,6 +31,12 @@ Organizado/
 pip install .
 ```
 
+Si quieres además clasificar por el contenido de los PDF (`--contenido`):
+
+```bash
+pip install ".[pdf]"
+```
+
 También puedes ejecutarla sin instalar nada:
 
 ```bash
@@ -43,15 +49,18 @@ PYTHONPATH=src python -m organizador ejecutar descargas
 organizador ejecutar [origen] [--salida Organizado] [--seco] [--simular]
                      [--recursivo] [--extension EXT] [--excluir PATRON]
                      [--desde YYYY-MM-DD] [--confirmar] [--json]
+                     [--contenido] [--contenido-max-paginas N]
                      [--log ruta.json | --logs-dir carpeta] [--reglas ruta.json]
 organizador revisar [--salida Organizado] [--interactivo] [--json]
                     [--reglas ruta.json]
+                    [--contenido] [--contenido-max-paginas N]
 organizador deshacer [--logs-dir carpeta] [--ultimos N] [--listar]
                      [--simular] [--json] [--log ruta.json]
 organizador reglas [--reglas ruta.json]
 organizador sugerir [--salida Organizado] [--reglas ruta.json]
                     [--logs-dir carpeta] [--aplicar --confirmar] [--json]
-organizador explicar NOMBRE [--salida Organizado] [--reglas ruta.json] [--json]
+organizador explicar NOMBRE [--salida Organizado] [--reglas ruta.json]
+                           [--contenido] [--contenido-max-paginas N] [--json]
 organizador aplicar [--salida Organizado] [--reglas ruta.json]
                     [--logs-dir carpeta] [--confirmar] [--reorganizar]
                     [--seco] [--json]
@@ -75,6 +84,13 @@ organizador --version
   (`--excluir "*borrador*"`; repetible).
 - `--desde`: solo procesa archivos modificados desde esa fecha
   (`YYYY-MM-DD`).
+- `--contenido`: en `ejecutar`, `revisar` y `explicar`, si el nombre de un
+  PDF no clasifica, se leen sus primeras páginas y se intenta por
+  contenido (necesita `pip install ".[pdf]"`). El nombre siempre manda: el
+  contenido solo salva lo que iría a `_revision`. En `revisar
+  --interactivo` la sugerencia aparece marcada como `(contenido)` en el
+  prompt, y `explicar` responde `Fuente: contenido`.
+- `--contenido-max-paginas`: páginas leídas por PDF (por defecto 3).
 - `--confirmar`: muestra el plan y pide confirmación antes de mover.
 - `--json`: emite el resultado en JSON (sin salida humana), útil para
   scripts.
@@ -306,6 +322,8 @@ límites conocidos de la suite.
 
 ## Límites
 
-- No lee el contenido de los PDF ni usa OCR: solo el nombre.
+- Con `--contenido` lee texto embebido de PDF (`pypdf`); un PDF escaneado
+  (sin capa de texto) no clasifica y sigue yendo a `_revision`. Sin OCR.
+- Sin `--contenido` el criterio es solo el nombre del archivo.
 - No hay interfaz gráfica.
 - Sin `--recursivo` solo procesa los archivos del primer nivel.

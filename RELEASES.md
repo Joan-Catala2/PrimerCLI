@@ -110,6 +110,9 @@ secretos y la auditoría de pruebas.
 - `docs/adr/002-una-accion-una-clase.md`: una acción por clase con fábrica
   `desde_config`; interfaz, motor, acciones y presentación separados.
 - `docs/adr/003-proveedor-ia.md`: proveedor opcional, entorno y fallback.
+- `docs/adr/005-verificar-audita-y-poda.md`: auditoría de la salida y poda reversible.
+- `docs/adr/006-contenido-pdf-opcional.md`: clasificación opcional por el
+  texto de los PDF (extra `organizador[pdf]`, opt-in, el nombre manda).
 - `docs/auditoria-tests.md`: cobertura, casos feos, regresiones y límites.
 - `.env.example`: plantilla sin valores reales; `.env` nunca se versiona.
 

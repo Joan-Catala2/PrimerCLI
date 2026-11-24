@@ -126,6 +126,30 @@ def limpiar_vacias(base):
             pass
 
 
+def _clasificar_por_contenido(archivo, extractor, reglas, avisos):
+    """Segundo intento (ADR-006): leer el PDF y casar su texto.
+
+    El extractor es inyectado: el motor no conoce `pypdf`. Si leer o
+    casar falla, se anota un aviso y el archivo sigue a `_revision`:
+    un PDF ilegible es un caso previsto, no un error. Devuelve
+    `(resultado, aviso)`; el aviso es None cuando el resultado existe.
+    """
+    from .contenido import ExtraccionFallida, clasificar_por_contenido
+
+    try:
+        texto = extractor(archivo)
+    except ExtraccionFallida as error:
+        aviso = "Aviso: {}: {}".format(archivo.name, error)
+        avisos.append(aviso)
+        return None, aviso
+    except OSError as error:
+        aviso = "Aviso: {}: {}".format(archivo.name, error)
+        avisos.append(aviso)
+        return None, aviso
+    resultado, _ = clasificar_por_contenido(texto, reglas)
+    return resultado, None
+
+
 def organizar(
     origen,
     salida,
@@ -136,6 +160,8 @@ def organizar(
     excluir=None,
     desde=None,
     ignorar=None,
+    extractor=None,
+    max_paginas=3,
 ):
     """Mueve cada archivo de `origen` a su carpeta clasificada.
 
@@ -144,12 +170,19 @@ def organizar(
     usan las del paquete. `recursivo` recorre subcarpetas; `extensiones`,
     `excluir` y `desde` filtran que archivos se procesan. `ignorar` es una
     lista de rutas que nunca se recorren (por ejemplo, la carpeta de logs).
+    `extractor` (opcional, ADR-006) es una funcion `ruta -> texto` que lee
+    el contenido de un PDF cuyo nombre no clasifico: si el texto casa con
+    una regla, el archivo se organiza por contenido en vez de ir a
+    `_revision`. `max_paginas` se pasa al extractor para que la capa de
+    accion lo valide con `ErrorDeUso` antes de recorrer nada; el motor no
+    la usa (no conoce el formato de lectura).
 
     Devuelve un dict con el resumen:
       {"organizados": [(archivo, asignatura, tema)],
        "revision": [archivo],
        "movimientos": [{nombre, asignatura, tema, destino}],
        "errores": [{nombre, error}],
+       "avisos": [str],
        "filtrados": int}
     """
     origen = Path(origen).resolve()
@@ -159,6 +192,11 @@ def organizar(
         raise CarpetaNoValidaError("No existe la carpeta de origen: {}".format(origen))
     if not origen.is_dir():
         raise CarpetaNoValidaError("El origen no es una carpeta: {}".format(origen))
+
+    def _es_pdf(nombre):
+        # `Path.suffix` mira el ultimo punto: `apuntes.pdf` es un PDF a todos
+        # los efectos, y el lector no puede decir lo contrario.
+        return nombre.lower().endswith(".pdf")
 
     if salida == origen or origen in salida.parents:
         raise CarpetaNoValidaError(
@@ -173,6 +211,7 @@ def organizar(
     revision = []
     movimientos = []
     errores = []
+    avisos: list = []
     filtrados = 0
     total_vistos = 0
 
@@ -190,10 +229,17 @@ def organizar(
 
         try:
             resultado = clasificar(archivo.name, reglas)
+            origen_clasificacion = "nombre"
+            if resultado is None and extractor is not None and _es_pdf(archivo.name):
+                resultado, aviso = _clasificar_por_contenido(
+                    archivo, extractor, reglas, avisos
+                )
+                if resultado is not None:
+                    origen_clasificacion = "contenido"
             if resultado is None:
                 asignatura, tema = REVISION, ""
             else:
-                asignatura, tema = resultado
+                asignatura, tema = resultado[0], resultado[1]
 
             destino_dir = salida / asignatura
             if tema:
@@ -211,6 +257,7 @@ def organizar(
                     "asignatura": asignatura,
                     "tema": tema,
                     "destino": str(destino),
+                    "origen": origen_clasificacion,
                 }
             )
 
@@ -233,6 +280,7 @@ def organizar(
         "revision": revision,
         "movimientos": movimientos,
         "errores": errores,
+        "avisos": avisos,
         "filtrados": filtrados,
     }
 

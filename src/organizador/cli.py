@@ -17,6 +17,28 @@ from .registro import CARPETA_LOGS
 CARPETA_SUGERIDA = "descargas"
 
 
+def _anadir_flags_contenido(subparser):
+    """Flags del contenido opcional de PDF (ADR-006), compartidos por
+    `ejecutar`, `revisar` y `explicar`. El default de paginas vive en
+    `contenido`, no aqui: el parser solo estructura, las decisiones son de
+    la accion."""
+    from .contenido import MAX_PAGINAS_POR_DEFECTO
+
+    subparser.add_argument(
+        "--contenido",
+        action="store_true",
+        help="si el nombre no clasifica un PDF, intenta clasificar por su "
+        "contenido (necesita `pip install organizador[pdf]`)",
+    )
+    subparser.add_argument(
+        "--contenido-max-paginas",
+        type=int,
+        default=MAX_PAGINAS_POR_DEFECTO,
+        metavar="N",
+        help="paginas leidas por PDF con --contenido (por defecto: %(default)s)",
+    )
+
+
 def _construir_parser():
     """Parser de argumentos: solo estructura, ninguna decision de negocio."""
     parser = argparse.ArgumentParser(
@@ -95,6 +117,7 @@ def _construir_parser():
         metavar="YYYY-MM-DD",
         help="solo procesa archivos modificados desde esa fecha",
     )
+    _anadir_flags_contenido(ejecutar)
     ejecutar.add_argument(
         "--confirmar",
         action="store_true",
@@ -122,6 +145,7 @@ def _construir_parser():
         default=None,
         help="fichero de reglas a usar (sustituye a las del paquete)",
     )
+    _anadir_flags_contenido(revisar)
     revisar.add_argument(
         "--json",
         action="store_true",
@@ -222,6 +246,7 @@ def _construir_parser():
         default=None,
         help="fichero de reglas a usar (sustituye a las del paquete)",
     )
+    _anadir_flags_contenido(explicar)
     explicar.add_argument(
         "--json",
         action="store_true",
