@@ -8,6 +8,17 @@ la etiqueta `v1.1` es la versión definitiva con fase 7 publicada (paquete
 `2.5.0`); la etiqueta `v1.2` añade la fase 8 (PDFs por contenido, paquete
 `2.6.0`, el que muestra `organizador --version`).
 
+## [Sin publicar]
+
+### Añadido
+
+- Guía `docs/como-anadir-una-accion.md`: los tres pasos mecánicos para
+  sumar un comando sin tocar el núcleo (clase con fábrica + línea de
+  registro + subparser), con ejemplo mínimo completo, los candados de la
+  suite que lo verifican (fábrica, README y `--help` e2e) y checklist. El
+  README enlaza la guía. Responde al criterio "anadir una accion no exige
+  tocar el codigo" haciendo el patron visible, no solo cierto.
+
 ## [2.6.0] — 2026-11-27 (etiqueta git `v1.2`)
 
 ### Añadido
