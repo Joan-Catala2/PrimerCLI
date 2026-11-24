@@ -3,12 +3,50 @@
 Historial de entregas del CLI `organizador`. La etiqueta `v1.0` marca la
 entrega final del proyecto; la etiqueta `v1.1` es la **versión definitiva**;
 la etiqueta `v1.2` añade la fase 8 (clasificación opcional por el texto de
-los PDF). El número interno del paquete conserva la cronología `2.x`
-(`organizador --version` muestra `2.6.0`).
+los PDF); la etiqueta `v1.3` publica la fase 9 (documentación de extensión
+y superficie pública de emparejamiento, sin cambios de comportamiento). El
+número interno del paquete conserva la cronología `2.x`
+(`organizador --version` muestra `2.6.1`).
 
 El detalle línea a línea de cada versión vive en
 [docs/CHANGELOG.md](docs/CHANGELOG.md). Esta página resume las entregas y sus
 verificaciones.
+
+## v1.3 — fase 9: extensible y desacoplada (parche)
+
+- **Fecha**: 2026-11-27
+- **Tag**: `v1.3`
+- **Base técnica**: `d98482e` (PR #15 y #16); el tag apunta al commit de
+  fusión de esta release.
+- **Paquete**: `organizador` 2.6.1
+- **Python**: 3.8+ (CI verificada en Ubuntu 3.10–3.13 y Windows 3.12/3.13)
+
+Fase 9: el patrón "una acción = una clase" deja de ser implícito. Cero
+cambios de comportamiento — el motor y los ocho comandos deciden exactamente
+igual que en la v1.2 (así lo certifican las 255 pruebas heredadas + 4
+nuevas de contrato).
+
+### Contenido
+
+- `docs/como-anadir-una-accion.md`: guía de extensión (3 pasos mecánicos +
+  ejemplo mínimo + tabla de candados de la suite + checklist), enlazada
+  desde el README.
+- `reglas.py` publica su contrato de emparejamiento (enmienda ADR-002):
+  `trocear`, `coincide_token`, `coincide_pegado`; `_coincide`/`_pega`
+  delegan (decisión idéntica). `aplicar` deja de importar privados.
+
+### Verificación (commit de release)
+
+| Comprobación | Resultado |
+|---|---|
+| `ruff check .` / `ruff format --check .` | limpio |
+| `mypy src` / `mypy tests` | limpio |
+| `pytest --cov=organizador --cov-fail-under=85` | 259 passed, 92.99 % |
+| `git ls-files -z \| xargs -0 python scripts/check_secretos.py` | limpio |
+| `python -m build` + `twine check --strict` | sdist+wheel válidos |
+| CI en `main` post-fusión | verde (matriz completa) |
+| Smoke (rueda de la release, venv limpio) | `--version` 2.6.1, flujo completo con y sin `--contenido` |
+| Auditoría detallada | `docs/auditoria-tests.md` |
 
 ## v1.2 — fase 8: PDFs por contenido
 
@@ -169,6 +207,7 @@ secretos y la auditoría de pruebas.
 
 | Versión | Hito | Commits/PRs relevantes |
 |---|---|---|
+| 2.6.1 | Fase 9: guía de extensión y superficie pública de emparejamiento | `d98482e`, PR #15, PR #16, tag `v1.3` |
 | 2.6.0 | Fase 8: clasificación opcional por el texto de los PDF (`--contenido`) | `b477527`, PR #13, tag `v1.2` |
 | 2.5.0 | Versión definitiva: `aplicar` + `verificar` + CI multi-SO, badge y build | PR #8, PR #9, PR #10, tag `v1.1` |
 | 2.4.0 | Sugerir/explicar con proveedor opcional y fallback; auditoría final | `415f3e2`, `1984985`, PR #4, PR #5 |
