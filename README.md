@@ -208,8 +208,10 @@ excepciones.py    OrganizadorError y amigos: errores humanos sin traceback
 Cada accion se construye con `desde_config(args, consola)`, una fabrica que
 resuelve dependencias y rechaza configuraciones imposibles antes de tocar
 el disco. El proveedor de IA se construye con `ProveedorIA.desde_env()`.
-Anadir una accion nueva = 1 clase + 1 linea en `Acciones`. El porqué de
-este diseno, del JSON de reglas y de la IA esta justificado en `docs/adr/`.
+Anadir una accion nueva = 1 clase + 1 linea en `Acciones` + 1 subparser: el
+motivo esta justificado en `docs/adr/` y los pasos exactos, con un ejemplo
+minimo y los candados que lo verifican, en
+[cómo añadir una acción](docs/como-anadir-una-accion.md).
 
 ## Cómo clasifica
 
