@@ -7,6 +7,7 @@ quien sabe de formatos es esta capa, que puede explicar el error en humano.
 
 from pathlib import Path
 
+from ..excepciones import ErrorDeUso
 from ..organizador import organizar
 from .base import Accion
 from .util import extensiones_de, parsear_fecha
@@ -45,20 +46,32 @@ class AccionEjecutar(Accion):
         from ..reglas import reglas_efectivas
 
         reglas = reglas_efectivas(args.reglas)
+        opciones = {
+            "reglas": reglas,
+            "recursivo": args.recursivo,
+            "extensiones": extensiones_de(args.extension),
+            "excluir": args.excluir,
+            "desde": parsear_fecha(args.desde),
+            "ignorar": [Path(args.logs_dir).resolve()],
+        }
+        if getattr(args, "contenido", False):
+            from ..contenido import texto_pdf
+
+            max_paginas = args.contenido_max_paginas
+            if max_paginas < 1:
+                raise ErrorDeUso("--contenido-max-paginas debe ser 1 o mas.")
+
+            def extraer(ruta):
+                return texto_pdf(ruta, max_paginas)
+
+            opciones["extractor"] = extraer
         return cls(
             consola=consola,
             origen=Path(args.origen).resolve(),
             salida=Path(args.salida).resolve(),
             reglas=reglas,
             registro=Registro.desde_config(args),
-            opciones={
-                "reglas": reglas,
-                "recursivo": args.recursivo,
-                "extensiones": extensiones_de(args.extension),
-                "excluir": args.excluir,
-                "desde": parsear_fecha(args.desde),
-                "ignorar": [Path(args.logs_dir).resolve()],
-            },
+            opciones=opciones,
             simular=args.simular,
             confirmar=args.confirmar,
             seco=args.seco,
@@ -93,7 +106,11 @@ class AccionEjecutar(Accion):
     # --- partes de ejecutar ---------------------------------------------
 
     def _guardar_si_procede(self, resumen, simulado):
-        """Escribe el log solo si hubo movimientos o errores reales."""
+        """Escribe el log solo si hubo movimientos o errores reales.
+
+        Los avisos de lectura (PDFs cifrados o ilegibles) no lo justifican:
+        no hubo efectos que deshacer.
+        """
         if simulado or not (resumen["movimientos"] or resumen["errores"]):
             return None
         ruta_log = None
@@ -129,6 +146,8 @@ class AccionEjecutar(Accion):
         if not self.seco:
             consola.movimientos(resumen, self.salida, "[SIM]" if simulado else "[OK]")
         consola.errores(resumen)
+        for aviso in resumen["avisos"]:
+            consola.aviso(aviso)
 
         lineas = [
             ("Archivos procesados", total),
@@ -161,6 +180,7 @@ class AccionEjecutar(Accion):
                 ],
                 "revision": resumen["revision"],
                 "errores": resumen["errores"],
+                "avisos": resumen["avisos"],
                 "filtrados": resumen["filtrados"],
                 "total": total,
                 "log": str(ruta_log) if ruta_log is not None else None,

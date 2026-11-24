@@ -277,6 +277,7 @@ def explicar_match(nombre_archivo, reglas=None):
                     "alias_asignatura": alias_asignatura,
                     "alias_tema": alias_tema,
                     "tipo": tipo_tema,
+                    "origen": "nombre",
                     "razon": razon,
                 }
 
@@ -287,6 +288,7 @@ def explicar_match(nombre_archivo, reglas=None):
             "alias_asignatura": alias_asignatura,
             "alias_tema": "",
             "tipo": tipo_asignatura,
+            "origen": "nombre",
             "razon": (
                 "El alias '{}' de {} encaja por {} en '{}'; ningún alias de "
                 "tema encaja, así que se clasifica sin tema.".format(
