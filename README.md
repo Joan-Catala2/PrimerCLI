@@ -318,9 +318,10 @@ La cobertura del job de Linux alimenta el escudo del encabezado (rama
 
 ### Auditoría de pruebas
 
-El informe `docs/auditoria-tests.md` documenta la cobertura actual (94,22%),
+El informe `docs/auditoria-tests.md` documenta la cobertura actual (93 %),
 el mapa requisito → prueba → caso feo, la sensibilidad a regresiones y los
-límites conocidos de la suite.
+límites conocidos de la suite. Para defenderlo en vivo: `docs/guion-defensa.md`
+(12 respuestas cortas con el `archivo:linea` de cada una).
 
 ## Límites
 

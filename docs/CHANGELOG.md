@@ -10,6 +10,16 @@ la etiqueta `v1.1` es la versión definitiva con fase 7 publicada (paquete
 superficie pública de emparejamiento, paquete `2.6.1`, el que muestra
 `organizador --version`).
 
+## [Sin publicar]
+
+### Añadido
+
+- Guía de defensa `docs/guion-defensa.md`: 12 respuestas cortas para
+  sustentar el proyecto en vivo (arquitectura, fábrica, 5 aserciones duras,
+  excepciones/códigos, `afirmar` vs `assert`, capas, IA, sin sorpresas,
+  `--contenido`, release, ciclo del log y preguntas trampa), cada una con
+  su `archivo:linea`. Enlazada desde la auditoría del README. Fase 9.5.
+
 ## [2.6.1] — 2026-11-27 (etiqueta git `v1.3`, fase 9)
 
 ### Añadido
