@@ -17,9 +17,9 @@ deterministas y sin proveedor externo:
 
 La inferencia vive en `sugerir_alias` (funcion pura: nombre + reglas ->
 propuesta o None), facil de probar y de auditar. Las coincidencias usan los
-mismos helpers que el motor (`_coincide`/`_pega`), asi que una propuesta
-aceptada se clasifica exactamente igual que lo haria una regla escrita a
-mano.
+mismas funciones publicas del emparejamiento (`coincide_token`/
+`coincide_pegado`), asi que una propuesta aceptada se clasifica exactamente
+igual que lo haria una regla escrita a mano.
 """
 
 import json
@@ -33,12 +33,13 @@ from ..organizador import mover_archivo
 from ..reglas import (
     REVISION,
     Regla,
-    _pega,
-    _tokens,
     cargar_reglas,
     clasificar,
+    coincide_pegado,
+    coincide_token,
     normalizar,
     ruta_reglas_usuario,
+    trocear,
 )
 from .base import Accion
 
@@ -120,7 +121,12 @@ class SugerenciaAplicar:
 
 
 def _aciertos(tokens, alias):
-    """Indices de `tokens` que cubre `alias` con la logica del motor."""
+    """Indices de `tokens` que cubre `alias` (la misma logica del motor).
+
+    Aqui se necesita el QUÉ, no solo el SI: los tokens cubiertos por un
+    alias conocido no pueden volver a proponerse. La version booleana es
+    la publica `coincide_token` de `reglas.py`.
+    """
     objetivo = normalizar(alias).split(" ")
     n = len(objetivo)
     cubre: set = set()
@@ -131,7 +137,15 @@ def _aciertos(tokens, alias):
 
 
 def _cubre(alias, tokens):
-    return bool(_aciertos(tokens, alias)) or _pega(" ".join(tokens), alias)
+    """El alias encaja en `tokens`: palabra completa o pegado.
+
+    Antes emulaba el nombre uniendo los tokens con espacios y llamando a
+    `_pega` (privado del modulo de reglas y con contrato de nombre de
+    archivo: funcionaba, pero por accidente). Ahora usa las dos funciones
+    publicas del contrato (`coincide_token`/`coincide_pegado`), que
+    trabajan directamente sobre tokens.
+    """
+    return coincide_token(tokens, alias) or coincide_pegado(tokens, alias)
 
 
 def _raiz(token):
@@ -170,7 +184,7 @@ def sugerir_alias(nombre, reglas):
         de falsos positivos como 'fol'/'folder');
       - si el alias propuesto ya esta catalogado, no hay nada que proponer.
     """
-    tokens = _tokens(nombre)
+    tokens = trocear(nombre)
     if not tokens:
         return None
     texto = "".join(tokens)

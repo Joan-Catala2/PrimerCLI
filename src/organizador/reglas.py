@@ -182,15 +182,53 @@ def _partes(nombre_archivo):
 
 def _tokens(nombre_archivo):
     """Como `_partes`, pero ademas separa camelCase ('BaseDeDatos')."""
-    tokens: list = []
-    for parte in _partes(nombre_archivo):
-        tokens.extend(p for p in re.split(r"(?<=[a-z])(?=[A-Z])", parte) if p)
-    return tokens
+    return [
+        parte
+        for token in _partes(nombre_archivo)
+        for parte in re.split(r"(?<=[a-z])(?=[A-Z])", token)
+        if parte
+    ]
+
+
+def trocear(nombre_archivo):
+    """Tokens de un nombre de archivo (superficie publica, ADR-002).
+
+    `_partes` + camelCase: `BaseDeDatos_sql.pdf` -> ['base', 'de', 'datos',
+    'sql']. Es lo que `coincide_token`/`coincide_pegado` consumen; publicar
+    esta troceadora es lo que permite a acciones (p. ej. `aplicar`) reutilizar
+    el emparejamiento sin importar privados ni inventarse el texto que le
+    pasan a `_pega`.
+    """
+    return _tokens(nombre_archivo)
 
 
 def _coincide(tokens, alias):
-    """Coincidencia por palabras: el alias debe aparecer como secuencia de
-    tokens consecutivos. Cubre 'BaseDeDatos_sql' y 'BaseDeDatos_sql'."""
+    """Coincidencia por palabras (interna): delega en `coincide_token`.
+
+    Cubre 'BaseDeDatos_sql' y 'basedatos sql'. `tokens` ya normalizados
+    (los que produce `_tokens`/`trocear`).
+    """
+    return bool(coincide_token(tokens, alias))
+
+
+def _pega(nombre_archivo, alias):
+    """Coincidencia compacta por nombre (interna): delega en la publica.
+
+    Mantiene el contrato historico: reglas anti-falso-positivo ('fol' no
+    casa en 'folder', 'ipe' no casa en 'recipe', 2 letras nunca), que viven
+    documentadas en `coincide_pegado`.
+    """
+    return coincide_pegado(_partes(nombre_archivo), alias)
+
+
+def coincide_token(tokens, alias):
+    """`True` si `alias` aparece en `tokens` como secuencia de palabras.
+
+    Superficie publica del emparejamiento (ADR-002): `tokens` es una lista
+    de cadenas ya normalizadas (ver `trocear`); `alias` se normaliza aqui
+    (minusculas, sin tildes, espacios como separadores). Es la misma
+    decision que toma `clasificar` para la coincidencia por palabra.
+    """
     objetivo = normalizar(alias).split(" ")
     n = len(objetivo)
     for i in range(len(tokens) - n + 1):
@@ -199,23 +237,34 @@ def _coincide(tokens, alias):
     return False
 
 
-def _pega(nombre_archivo, alias):
-    """Coincidencia compacta: alias pegado al nombre sin separadores.
+def coincide_pegado(tokens, alias):
+    """`True` si el alias, pegado (sin espacios), encaja en `tokens`.
 
-    Permite 'trabajosql', 'basededatos' o 'sql_apuntes'. Para no generar
-    falsos positivos ('fol' dentro de 'folder', 'ipe' dentro de 'recipe')
-    se aplican estas reglas:
-      - varias palabras: subcadena si tiene 4+ letras;
-      - una palabra de 4+ letras: al principio o al final;
-      - una palabra de 3 letras: solo al final, tras una vocal y con al
-        menos 3 letras delante ('trabajosql' si, 'digit'/'recipe' no);
-      - 2 letras o menos: nunca (se exige palabra completa).
+    Superficie publica del emparejamiento compacto (ADR-002): la alternativa
+    a escribir `trabajosql` o `basededatos`. Reglas anti-falso-positivo
+    (historicas de `_pega`):
+
+      - alias de varias palabras: subcadena si tiene 4+ letras pegadas;
+      - una palabra de 4+ letras: al principio o al final del compacto;
+      - una palabra de 3 letras: solo al final, tras vocal y con 3+ letras
+        delante ('trabajosql' si, 'digit'/'recipe' no);
+      - 2 letras o menos: nunca (se exige palabra completa -> `coincide_token`).
+
+    `tokens` ya normalizados; aqui se unen SIN separadores. Ojo al contrato:
+    la equivalencia con `_pega` vale cuando los tokens vienen de `_partes`
+    (uno por separador). Con `trocear` (camelCase roto) la equivalencia es
+    unidireccional: un alias pegado como `github` casa en
+    `GithubApuntes.pdf` por `trocear` (`github`+`apuntes` ->
+    'githubapuntes') pero no por `_partes` (`githubapuntes` no acaba en
+    'github'). Por eso el motor (`_pega`) sigue consumiendo `_partes`: es
+    el compacto fiel del nombre; las publicas son la version tokenizada,
+    que JAMAS produce falsos positivos que el motor no produzca.
     """
     alias_norm = normalizar(alias)
     compacto = alias_norm.replace(" ", "")
     if not compacto:
         return False
-    texto = "".join(_partes(nombre_archivo))
+    texto = "".join(tokens)
     if " " in alias_norm:
         return len(compacto) >= 4 and compacto in texto
     if len(compacto) >= 4:
