@@ -20,10 +20,6 @@ superficie pública de emparejamiento, paquete `2.6.1`, el que muestra
   `--contenido`, release, ciclo del log y preguntas trampa), cada una con
   su `archivo:linea`. Enlazada desde la auditoría del README. Fase 9.5.
 
-## [Sin publicar]
-
-### Añadido
-
 - Auditoría del **paquete publicado** (`tests/test_paquete.py`, marca
   `lento`): construye el sdist del repo, lo instala en un venv real y
   ejerce el contrato de la release en el artefacto — `--version` igual al
