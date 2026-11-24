@@ -8,9 +8,9 @@ Resumen ejecutivo de la suite, mapa requisito → prueba → caso feo, sensibili
 |---|---|
 | Pruebas recopiladas | 221 |
 | Resultado | 221 passed, 0 failed, 0 skipped |
-| Cobertura global | 93.19 % (1836 sentencias, 125 sin cubrir) |
+| Cobertura global | 93.04 % (1840 sentencias, 128 sin cubrir) |
 | Umbral CI | 85 % (`--cov-fail-under=85`) |
-| Archivos con cobertura completa | 10 de 23 |
+| Archivos con cobertura completa | 10 de 25 (los 10 restantes tienen ≥1 línea) |
 | Tiempo local | ≈ 2.1 s en Python 3.10.12 |
 | Prueba más lenta | `test_cli_instalado_json_de_tres_acciones_es_parseable`, ≈ 0.33 s |
 | Lint / tipos | `ruff check .`, `ruff format --check .`, `mypy src` y `mypy tests` limpios |
@@ -49,21 +49,31 @@ La suite no necesita red, credenciales reales ni servicios externos. `urlopen` s
 | Módulo | Stmts | Miss | Cover | Líneas sin cubrir (interpretación) |
 |---|---:|---:|---:|---|
 | `acciones/aplicar.py` | 285 | 26 | 91 % | Ramas defensivas de lectura/escritura de JSON, aviso de log y variantes de presentación |
-| `acciones/verificar.py` | 218 | 13 | 94 % | Defensas de IO (hash ilegible, papelera ausente) y ramas de aviso |
 | `acciones/deshacer.py` | 173 | 22 | 87 % | Defensas de restauración y ramas de presentación |
 | `acciones/ejecutar.py` | 78 | 4 | 95 % | Ramas defensivas de resumen y filtro |
 | `acciones/explicar.py` | 45 | 1 | 98 % | Una rama de presentación |
 | `acciones/reglas.py` | 20 | 1 | 95 % | Una rama de presentación |
 | `acciones/revisar.py` | 135 | 9 | 93 % | EOF/cancelaciones y ramas de interacción |
 | `acciones/sugerir.py` | 111 | 4 | 96 % | Aviso IA no configurada y variantes de presentación |
+| `acciones/verificar.py` | 218 | 13 | 94 % | Defensas de IO (hash ilegible, papelera ausente) y ramas de aviso |
 | `cli.py` | 86 | 2 | 98 % | Línea 323 cubierta por subprocess real; 352 es el `if __name__` del módulo |
 | `organizador.py` | 158 | 12 | 92 % | Defensas de MOV/formatos raros y `main` delegado |
 | `presentacion/consola.py` | 66 | 4 | 94 % | Ramas de confirmación/aviso en errores extraños |
 | `proveedor/api.py` | 97 | 8 | 92 % | Validaciones defensivas de respuestas malformadas |
 | `proveedor/base.py` | 38 | 1 | 97 % | Método abstracto nunca instanciado |
-| `registro.py` | 74 | 11 | 85 % | Rutas relativas, logs corruptos y sobreescritura defensiva |
-| `reglas.py` | 149 | 9 | 94 % | Validaciones defensivas de reglas |
-| **TOTAL** | **1836** | **125** | **93.19 %** | — |
+| `registro.py` | 75 | 9 | 88 % | Rutas relativas, logs corruptos y sobreescritura defensiva |
+| `reglas.py` | 153 | 12 | 92 % | Validaciones defensivas de reglas |
+| **TOTAL** | **1840** | **128** | **93.04 %** | — |
+
+Nota: los otros 10 módulos del paquete (`__init__.py`, `__main__.py`,
+`excepciones.py`, `acciones/__init__.py`, `acciones/base.py`,
+`acciones/util.py`, `presentacion/__init__.py`,
+`presentacion/salida_json.py`, `proveedor/__init__.py`,
+`proveedor/heuristico.py`) tienen cobertura completa y `coverage` los
+oculta del informe (`skip_covered`); por eso el detalle son 15 líneas
+y el total 25 módulos. El escudo público (`scripts/badge.py`) lee el
+mismo `line-rate` del XML: 93 %, sin divergencias entre informe y
+escudo.
 
 Nota sobre `cli.py:323`: la línea aparece como no cubierta en el informe de subprocess porque `coverage.py` no instrumenta el intérprete hijo, pero esa rama se ejecuta en `test_cli_instalado_error_json_tiene_codigo_y_objeto_valido` y `test_cli_instalado_aplicar_sin_confirmar_no_toca_archivos`. `cli.py:352` es el guardián `if __name__ == "__main__"`, ejercitado por `runpy` en `test_punto_de_entrada_python_m_devuelve_version`.
 
@@ -150,12 +160,14 @@ Durante la auditoría aparecieron mutaciones reales, no hipotéticas:
 
 ## 8. Limitaciones honestas
 
-- Cobertura 93.64 %, no 100 %. Quedan ramas mayormente defensivas en `registro.py`, `organizador.py`, `acciones/aplicar.py` y `proveedor/api.py`.
+- Cobertura 93.04 %, no 100 %. Quedan ramas mayormente defensivas en `registro.py`, `organizador.py`, `acciones/aplicar.py` y `proveedor/api.py`.
 - No hay mutation testing automatizado; §5 documenta pruebas sensibles a mutaciones concretas, no una puntuación de mutantes.
 - No se prueba contra proveedores de IA reales: sería pago, no determinista y contradictorio con las restricciones del proyecto.
 - La matriz CI cubre Linux (3.10–3.13) y Windows (3.12/3.13). macOS no se prueba: los runners `macos-*` de GitHub no están disponibles para cuentas gratuitas (los jobs se cancelan sin pasos); se prefiere honestidad a cobertura fingida.
 - Los mensajes exactos en humano están cubiertos por fragmentos (`in`), no por comparación byte a byte; la intención es detectar pérdida de información, no congelar redacción.
 - Las subprocess e2e dependen de `python -m organizador`, que es precisamente la forma instalable que se quiere auditar; por eso se aceptan ~0.3 s por prueba.
+- El README y `RELEASES.md` se auditan con el contrato `tests/test_docs_readme.py`: ocho comandos documentados y sin banderas inventadas. La etiqueta `v1.1` (versión definitiva, paquete 2.5.0) mantiene la cronología: `v1.0` fue la entrega final con seis comandos; los dos nuevos
+se publican como mejora menor dentro de la misma línea `2.x` del paquete.
 
 ## 9. Veredicto
 

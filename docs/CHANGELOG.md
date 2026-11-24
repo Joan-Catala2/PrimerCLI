@@ -3,10 +3,11 @@
 Todos los cambios destacados del CLI `organizador`. El formato sigue
 [Keep a Changelog](https://keepachangelog.com/es/1.1.0/) y la versión del
 paquete sigue [Semantic Versioning](https://semver.org/lang/es/). La etiqueta
-git `v1.0` corresponde a la entrega final; el número interno del paquete es
-`2.4.0` y es el que muestra `organizador --version`.
+git `v1.0` corresponde a la entrega final del proyecto (paquete `2.4.0`); la
+etiqueta `v1.1` es la versión definitiva con fase 7 publicada (paquete
+`2.5.0`, el que muestra `organizador --version`).
 
-## [Sin publicar]
+## [2.5.0] — 2026-11-27 (etiqueta git `v1.1`, versión definitiva)
 
 ### Añadido
 
@@ -46,6 +47,16 @@ git `v1.0` corresponde a la entrega final; el número interno del paquete es
 - Pruebas de contrato: metadato PEP 621 == `__version__`, `pyproject.toml`
   sin `version` fija, catálogo de reglas empaquetado íntegro y README que
   documenta los seis subcomandos.
+- Workflows de CI probados en producción: dos correcciones sobre la marcha
+  durante la fusión de la fase 7C (badge sin working tree → checkout de
+  `main` antes de generar; checkout de `badges` con `clean: false` para no
+  borrar el `data.json` recien generado).
+
+### Arreglado
+
+- El workflow del escudo de cobertura fallaba en `main` porque el job
+  `badge` ejecutaba `scripts/badge.py` sin código en el directorio de
+  trabajo: ahora hay un `checkout` de `main` explícito antes de generar.
 
 ## [2.4.0] — 2026-11-18 (etiqueta git `v1.0`, entrega final)
 
