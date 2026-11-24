@@ -54,6 +54,8 @@ reglas externas, IA opcional con fallback y control de secretos.
 | `python -m build` + `twine check --strict` | sdist+wheel válidos |
 | CI en `main` post-fusión | verde (matriz completa) |
 | Escudo de cobertura | `data.json` en `badges`, endpoint servido |
+| GitHub Release `v1.1` | artefactos CI adjuntados (sin PyPI) |
+| Prueba de humo (rueda de la release, venv limpio) | `--version` 2.5.0, `ejecutar`+`deshacer`+`--json`+`verificar` correctos |
 | Auditoría detallada | `docs/auditoria-tests.md` |
 
 ## v1.0 — entrega final
