@@ -1,14 +1,56 @@
 # Releases
 
 Historial de entregas del CLI `organizador`. La etiqueta `v1.0` marca la
-entrega final del proyecto; la etiqueta `v1.1` es la **versión definitiva**:
-publica la fase 7 (comandos `aplicar` y `verificar`) y la fase 7C (CI y
-distribución). El número interno del paquete conserva la cronología `2.x`
-(`organizador --version` muestra `2.5.0`).
+entrega final del proyecto; la etiqueta `v1.1` es la **versión definitiva**;
+la etiqueta `v1.2` añade la fase 8 (clasificación opcional por el texto de
+los PDF). El número interno del paquete conserva la cronología `2.x`
+(`organizador --version` muestra `2.6.0`).
 
 El detalle línea a línea de cada versión vive en
 [docs/CHANGELOG.md](docs/CHANGELOG.md). Esta página resume las entregas y sus
 verificaciones.
+
+## v1.2 — fase 8: PDFs por contenido
+
+- **Fecha**: 2026-11-27
+- **Tag**: `v1.2`
+- **Base técnica**: `b477527` (PR #13); el tag apunta al commit de fusión de
+  esta release.
+- **Paquete**: `organizador` 2.6.0
+- **Python**: 3.8+ (CI verificada en Ubuntu 3.10–3.13 y Windows 3.12/3.13)
+
+Sobre la v1.1: los PDFs cuyo nombre no clasifica (`Tema4.pdf`,
+`examen_resuelto.pdf`) pueden rescatarse de `_revision` leyendo sus
+primeras páginas. Opt-in con `--contenido` en `ejecutar`, `revisar` y
+`explicar`; sin el flag, la CLI es idéntica a la v1.1.
+
+### Contenido
+
+- `--contenido` (y `--contenido-max-paginas N`, por defecto 3): el nombre
+  siempre manda; el contenido solo intenta lo que iría a `_revision`.
+  Emparejamiento por fronteras de palabra con el catálogo de siempre
+  (nada de `mysql` → `sql`); los alias de 1–2 letras (temas `1`, `T1`)
+  no participan. ADR-006.
+- Extra `organizador[pdf]` (`pypdf`, BSD, pure python, cero dependencias
+  transitivas): el paquete base sigue siendo stdlib puro. Sin el extra,
+  `--contenido` responde un error humano con el comando de instalación.
+- Movimientos del JSON y del log llevan `origen` (`nombre`/`contenido`);
+  `explicar --contenido` responde `Fuente: contenido`; `revisar
+  --interactivo` marca `(contenido)` la sugerencia en el prompt.
+- Suite ampliada a 255 pruebas; cobertura 92.98 % (margen sobre el 85 %).
+
+### Verificación (commit de release)
+
+| Comprobación | Resultado |
+|---|---|
+| `ruff check .` / `ruff format --check .` | limpio |
+| `mypy src` / `mypy tests` | limpio |
+| `pytest --cov=organizador --cov-fail-under=85` | 255 passed, 92.98 % |
+| `git ls-files -z \| xargs -0 python scripts/check_secretos.py` | limpio |
+| `python -m build` + `twine check --strict` | sdist+wheel válidos (`contenido.py` y `py.typed` dentro) |
+| CI en `main` post-fusión | verde (matriz completa) |
+| Smoke con `--contenido` (PDFs reales generados) | rescata a `BaseDeDatos/Normalizacion`, `explicar` dice `Fuente: contenido` |
+| Auditoría detallada | `docs/auditoria-tests.md` |
 
 ## v1.1 — versión definitiva
 
@@ -127,6 +169,7 @@ secretos y la auditoría de pruebas.
 
 | Versión | Hito | Commits/PRs relevantes |
 |---|---|---|
+| 2.6.0 | Fase 8: clasificación opcional por el texto de los PDF (`--contenido`) | `b477527`, PR #13, tag `v1.2` |
 | 2.5.0 | Versión definitiva: `aplicar` + `verificar` + CI multi-SO, badge y build | PR #8, PR #9, PR #10, tag `v1.1` |
 | 2.4.0 | Sugerir/explicar con proveedor opcional y fallback; auditoría final | `415f3e2`, `1984985`, PR #4, PR #5 |
 | 2.3 | Excepciones propias, mensajes humanos y CI de calidad | `22533c5`, `2ee66a4`, PR #1 |

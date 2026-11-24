@@ -6,13 +6,13 @@ Resumen ejecutivo de la suite, mapa requisito → prueba → caso feo, sensibili
 
 | Métrica | Valor |
 |---|---|
-| Pruebas recopiladas | 221 |
-| Resultado | 221 passed, 0 failed, 0 skipped |
-| Cobertura global | 93.04 % (1840 sentencias, 128 sin cubrir) |
+| Pruebas recopiladas | 255 |
+| Resultado | 255 passed, 0 failed, 0 skipped |
+| Cobertura global | 92.98 % (2009 sentencias, 141 sin cubrir) |
 | Umbral CI | 85 % (`--cov-fail-under=85`) |
-| Archivos con cobertura completa | 10 de 25 (los 10 restantes tienen ≥1 línea) |
-| Tiempo local | ≈ 2.1 s en Python 3.10.12 |
-| Prueba más lenta | `test_cli_instalado_json_de_tres_acciones_es_parseable`, ≈ 0.33 s |
+| Archivos con cobertura completa | 10 de 26 (los 16 restantes tienen ≥1 línea) |
+| Tiempo local | ≈ 2.5 s en Python 3.10.12 |
+| Prueba más lenta | `test_cli_instalado_no_filtra_la_clave_de_entorno`, ≈ 0.26 s |
 | Lint / tipos | `ruff check .`, `ruff format --check .`, `mypy src` y `mypy tests` limpios |
 | Secretos | `scripts/check_secretos.py $(git ls-files)` limpio |
 | Matriz CI | Ubuntu 24.04 (3.10–3.13) + Windows (3.12, 3.13) |
@@ -50,32 +50,36 @@ La suite no necesita red, credenciales reales ni servicios externos. `urlopen` s
 |---|---:|---:|---:|---|
 | `acciones/aplicar.py` | 285 | 26 | 91 % | Ramas defensivas de lectura/escritura de JSON, aviso de log y variantes de presentación |
 | `acciones/deshacer.py` | 173 | 22 | 87 % | Defensas de restauración y ramas de presentación |
-| `acciones/ejecutar.py` | 78 | 4 | 95 % | Ramas defensivas de resumen y filtro |
-| `acciones/explicar.py` | 45 | 1 | 98 % | Una rama de presentación |
+| `acciones/ejecutar.py` | 90 | 5 | 94 % | Ramas defensivas de resumen y filtro |
+| `acciones/explicar.py` | 71 | 2 | 97 % | Ramas de validación en la fábrica |
 | `acciones/reglas.py` | 20 | 1 | 95 % | Una rama de presentación |
-| `acciones/revisar.py` | 135 | 9 | 93 % | EOF/cancelaciones y ramas de interacción |
+| `acciones/revisar.py` | 163 | 14 | 91 % | EOF/cancelaciones y ramas de interacción |
 | `acciones/sugerir.py` | 111 | 4 | 96 % | Aviso IA no configurada y variantes de presentación |
 | `acciones/verificar.py` | 218 | 13 | 94 % | Defensas de IO (hash ilegible, papelera ausente) y ramas de aviso |
-| `cli.py` | 86 | 2 | 98 % | Línea 323 cubierta por subprocess real; 352 es el `if __name__` del módulo |
-| `organizador.py` | 158 | 12 | 92 % | Defensas de MOV/formatos raros y `main` delegado |
+| `cli.py` | 93 | 2 | 98 % | Líneas 348/377 cubiertas por subprocess real; 377 es el `if __name__` del módulo || `contenido.py` | 74 | 2 | 97 % | Dos ramas defensivas de lectura (`is_encrypted` y página `None`) |
+| `organizador.py` | 180 | 16 | 91 % | Defensas de MOV/formatos raros y `main` delegado |
 | `presentacion/consola.py` | 66 | 4 | 94 % | Ramas de confirmación/aviso en errores extraños |
 | `proveedor/api.py` | 97 | 8 | 92 % | Validaciones defensivas de respuestas malformadas |
 | `proveedor/base.py` | 38 | 1 | 97 % | Método abstracto nunca instanciado |
 | `registro.py` | 75 | 9 | 88 % | Rutas relativas, logs corruptos y sobreescritura defensiva |
 | `reglas.py` | 153 | 12 | 92 % | Validaciones defensivas de reglas |
-| **TOTAL** | **1840** | **128** | **93.04 %** | — |
+| **TOTAL** | **2009** | **141** | **92.98 %** | — |
 
 Nota: los otros 10 módulos del paquete (`__init__.py`, `__main__.py`,
 `excepciones.py`, `acciones/__init__.py`, `acciones/base.py`,
 `acciones/util.py`, `presentacion/__init__.py`,
 `presentacion/salida_json.py`, `proveedor/__init__.py`,
 `proveedor/heuristico.py`) tienen cobertura completa y `coverage` los
-oculta del informe (`skip_covered`); por eso el detalle son 15 líneas
-y el total 25 módulos. El escudo público (`scripts/badge.py`) lee el
+oculta del informe (`skip_covered`); por eso el detalle son 16 líneas
+y el total 26 módulos. El escudo público (`scripts/badge.py`) lee el
 mismo `line-rate` del XML: 93 %, sin divergencias entre informe y
 escudo.
 
-Nota sobre `cli.py:323`: la línea aparece como no cubierta en el informe de subprocess porque `coverage.py` no instrumenta el intérprete hijo, pero esa rama se ejecuta en `test_cli_instalado_error_json_tiene_codigo_y_objeto_valido` y `test_cli_instalado_aplicar_sin_confirmar_no_toca_archivos`. `cli.py:352` es el guardián `if __name__ == "__main__"`, ejercitado por `runpy` en `test_punto_de_entrada_python_m_devuelve_version`.
+Nota sobre `cli.py`: las líneas 348 (`argv = sys.argv[1:]`) y 377
+(guardián `if __name__ == "__main__"`) aparecen sin cubrir porque
+`coverage.py` no instrumenta el intérprete hijo. La 348 si se ejecuta
+en los e2e de subprocess, y la 377 se ejercita via `runpy` en
+`test_punto_de_entrada_python_m_devuelve_version`.
 
 ## 4. Mapa requisito → prueba → caso feo
 
@@ -111,6 +115,10 @@ Nota sobre `cli.py:323`: la línea aparece como no cubierta en el informe de sub
 | Sin fugas de clave | `tests/test_proveedor.py::test_desde_env_con_configuracion_no_revela_la_clave`, `tests/test_secretos.py::test_detecta_una_clave_con_patron_conocido`, `test_detecta_tokens_de_otros_proveedores`, `test_env_example_solo_contiene_nombres_vacios`, e2e con `CLAVE-FALSA-SIN-FORMATO` | `repr`/`str`, stdout o git contienen la credencial |
 | Version con una sola fuente | `tests/test_cli.py::test_version_de_instalacion_igual_a_la_del_paquete`, `test_version_del_pyproject_es_dinamica` | Alguien fija `version` en el TOML y el `--version` instalado diverge del módulo |
 | Escudo de cobertura | `tests/test_badge.py::test_porcentaje_y_color_bueno`, `test_por_debajo_del_umbral_en_rojo`, `test_xml_roto_es_error_de_cl` | El badge miente (verde con <85 %) o el workflow revienta con un XML inesperado |
+| Contenido de PDF (lector) | `tests/test_contenido.py::test_texto_pdf_respeta_max_paginas`, `test_texto_pdf_valida_max_paginas`, `test_texto_pdf_trunca_sin_reventar`, `test_texto_pdf_sin_extra_es_error_humano`, `test_texto_pdf_con_archivo_basura_es_fallo_previsto` | `--contenido` revienta con un PDF raro, lee mas paginas de las pedidas, o pide instalar algo que no existe |
+| Contenido de PDF (reglas) | `tests/test_contenido.py::test_mysql_no_es_sql`, `test_tema_detectado_con_frontera`, `test_alias_inutil_no_participa`, `test_clasifica_con_las_reglas_del_paquete_por_defecto` | Un subcadena convierte `mysql` en `BaseDeDatos`; el escudo deja de reportar el catalogo real |
+| Contenido de PDF (motor) | `tests/test_contenido.py::test_el_nombre_manda_aunque_el_contenido_diga_otra_cosa`, `test_extractor_no_toca_los_no_pdf`, `test_extractor_ilegible_avisa_y_sigue_a_revision` | El contenido pisa una clasificacion por nombre; se leen txts; un PDF ilegible aborta la pasada |
+| Contenido de PDF (CLI) | `tests/test_contenido.py::test_ejecutar_contenido_con_pdf_real`, `test_ejecutar_contenido_json_muestra_origen`, `test_ejecutar_sin_contenido_ignora_el_pdf`, `test_revisar_interactivo_marca_contenido_en_el_prompt`, `test_explicar_contenido_fuente_contenido`, `test_contenido_max_paginas_invalido_es_error_de_uso`, `tests/test_acciones.py::test_ejecutar_con_contenido_inyecta_extractor` | `--contenido` no mueve; el JSON no dice el origen; sin flag se lee contenido; la marca falta; `explicar` miente; `--contenido-max-paginas 0` no falla al construir |
 | Catalogo de reglas empaquetado | `tests/test_reglas.py::test_catalogo_del_paque_no_esta_corrupto`, `test_cada_asignatura_del_catalogo_se_detecta_por_su_nombre` | Alias vacio o duplicado en `reglas.json` rompe la clasificacion sin romper tests de logica |
 | Doc sin deriva | `tests/test_docs_readme.py::test_readme_documenta_el_comando`, `test_parser_expone_los_comandos_del_readme`, `test_readme_no_promete_variables_de_entorno_inexistentes`, `test_readme_no_documenta_banderas_fantasma` | Comando nuevo sin documentar, env var fantasma o bandera inventada en el README |
 | Aplicar (aprender alias) | `tests/test_acciones_aplicar.py::test_propone_alias_largo_tras_asignatura`, `test_token_generico_no_propone_nada`, `test_unico_token_corto_no_propone`, `test_empate_entre_asignaturas_no_propone`, `test_alias_de_tema_cuenta_como_evidencia` | Alias inventado a partir de `tema3`, `x2` o tokens cortos; `poo` propuesto pese a ser variante de `pseudocodigo` |
@@ -135,6 +143,7 @@ No se añadió una librería de mutation testing: el proyecto se mantiene solo c
 | `ProveedorApi` acepta `choices=[]` | `test_api_respuesta_sin_choices_lanza_error` |
 | El scanner anti-claves pierde un proveedor | `test_detecta_tokens_de_otros_proveedores` |
 | `.env.example` incluye un valor de ejemplo no vacío | `test_env_example_solo_contiene_nombres_vacios` |
+| `--contenido` construye el extractor sin validarlo | `test_contenido_max_paginas_invalido_falla_antes_de_tocar_nada` (la fábrica debe rechazar `--contenido-max-paginas 0` antes de tocar disco) |
 
 Durante la auditoría aparecieron mutaciones reales, no hipotéticas:
 
@@ -163,6 +172,7 @@ Durante la auditoría aparecieron mutaciones reales, no hipotéticas:
 - Cobertura 93.04 %, no 100 %. Quedan ramas mayormente defensivas en `registro.py`, `organizador.py`, `acciones/aplicar.py` y `proveedor/api.py`.
 - No hay mutation testing automatizado; §5 documenta pruebas sensibles a mutaciones concretas, no una puntuación de mutantes.
 - No se prueba contra proveedores de IA reales: sería pago, no determinista y contradictorio con las restricciones del proyecto.
+- `--contenido` no hace OCR: un PDF escaneado (sin capa de texto) no clasifica y sigue a `_revision`. Los PDFs de prueba se generan con el propio `pypdf` (`tests/pdfs.py`): se prueba el contrato lector/clasificador, no la fidelidad de `extract_text` de `pypdf` (que es del proveedor).
 - La matriz CI cubre Linux (3.10–3.13) y Windows (3.12/3.13). macOS no se prueba: los runners `macos-*` de GitHub no están disponibles para cuentas gratuitas (los jobs se cancelan sin pasos); se prefiere honestidad a cobertura fingida.
 - Los mensajes exactos en humano están cubiertos por fragmentos (`in`), no por comparación byte a byte; la intención es detectar pérdida de información, no congelar redacción.
 - Las subprocess e2e dependen de `python -m organizador`, que es precisamente la forma instalable que se quiere auditar; por eso se aceptan ~0.3 s por prueba.

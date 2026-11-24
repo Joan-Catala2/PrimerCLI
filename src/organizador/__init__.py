@@ -1,3 +1,3 @@
 """organizador: CLI para clasificar archivos por asignatura y tema."""
 
-__version__ = "2.5.0"
+__version__ = "2.6.0"
