@@ -33,6 +33,9 @@ organizador = ["reglas.json"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+markers = [
+    "lento: construye venvs/paquetes reales (no corre con -m 'not lento')",
+]
 
 [tool.ruff]
 target-version = "py38"
