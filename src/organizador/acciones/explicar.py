@@ -4,9 +4,9 @@ Combina la prueba documental de `reglas.json` (alias y tipo de coincidencia)
 con una frase del proveedor de IA si está disponible. Si la IA falla, se
 muestra igualmente la explicación local y se avisa por stderr.
 
-Con `--contenido` (ADR-006), si el nombre es un PDF sin coincidencia en las
-reglas, se intenta explicar (y mostrar) la clasificacion por el texto del
-documento: `Fuente: contenido`.
+Con `--contenido` (ADR-006/007), si el nombre es un PDF o DOCX sin
+coincidencia en las reglas, se intenta explicar (y mostrar) la clasificacion
+por el texto del documento: `Fuente: contenido`.
 """
 
 from pathlib import Path
@@ -39,15 +39,15 @@ class AccionExplicar(Accion):
             raise ErrorDeUso("explicar necesita un nombre de archivo.")
         extractor = None
         if getattr(args, "contenido", False):
-            from ..contenido import texto_pdf
+            from ..contenido import texto_documento
 
             max_paginas = args.contenido_max_paginas
             if max_paginas < 1:
                 raise ErrorDeUso("--contenido-max-paginas debe ser 1 o mas.")
-            ruta_pdf = Path(nombre)
+            ruta_documento = Path(nombre)
 
             def extraer():
-                return texto_pdf(ruta_pdf, max_paginas)
+                return texto_documento(ruta_documento, max_paginas)
 
             extractor = extraer
         return cls(
@@ -60,13 +60,15 @@ class AccionExplicar(Accion):
         )
 
     def _coincidencia_por_contenido(self, nombre):
-        """Explicacion por texto del PDF: `--contenido` con un nombre que
-        no clasifica. Sin extractor, sin .pdf o con lectura fallida, None
-        (el aviso corre a cargo del extractor; aqui no se interrumpe nada).
+        """Explicacion por texto del documento: `--contenido` con un nombre
+        que no clasifica. Sin extractor, sin extension leible o con lectura
+        fallida, None (el aviso corre a cargo del extractor; aqui no se
+        interrumpe nada).
         """
-        if self.extractor is None or not nombre.lower().endswith(".pdf"):
+        from ..contenido import ExtraccionFallida, clasificar_por_contenido, es_lexible
+
+        if self.extractor is None or not es_lexible(nombre):
             return None
-        from ..contenido import ExtraccionFallida, clasificar_por_contenido
 
         try:
             texto = self.extractor()

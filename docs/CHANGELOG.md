@@ -7,8 +7,34 @@ git `v1.0` corresponde a la entrega final del proyecto (paquete `2.4.0`);
 la etiqueta `v1.1` es la versión definitiva con fase 7 publicada (paquete
 `2.5.0`); la etiqueta `v1.2` añade la fase 8 (PDFs por contenido, paquete
 `2.6.0`); la etiqueta `v1.3` publica la fase 9 (guía de extensión y
-superficie pública de emparejamiento, paquete `2.6.1`, el que muestra
-`organizador --version`).
+superficie pública de emparejamiento, paquete `2.6.1`); la `v1.3.1` audita
+el sdist publicado (`2.6.2`); la `v1.4` añade DOCX opcional (`2.7.0`, el
+que muestra `organizador --version`).
+
+## [2.7.0] — 2026-11-27 (etiqueta git `v1.4`, fase 11)
+
+### Añadido
+
+- `--contenido` también lee **DOCX** en `ejecutar`, `revisar` y `explicar`.
+  El nuevo extra `organizador[docx]` instala `python-docx>=1.1,<2`;
+  `organizador[pdf]` sigue bastando para PDF y `.[pdf,docx]` instala ambos.
+  La lectura incluye título, párrafos y celdas de tabla, con el mismo
+  techo de 4000 caracteres y sin paginación: `--contenido-max-paginas`
+  sigue aplicándose solo a PDF. ADR-007.
+- `texto_documento(ruta, max_paginas)`, `texto_docx(ruta)`, `es_lexible(nombre)`
+  y `EXTENSIONES_LEXIBLES` en `contenido.py`. Las tres fábricas inyectan el
+  mismo despachador; el motor solo pregunta por extensiones leibles.
+  `texto_pdf` y `clasificar_por_contenido` conservan su firma.
+- `tests/documentos.py` (DOCX reales, sin binarios versionados) y 18 pruebas
+  en `tests/test_docx.py`: lector, extra ausente, archivo corrupto,
+  despacho por extensión mayúscula/minúscula, motor, `--contenido` en los
+  tres comandos y error humano que no mueve nada.
+
+### Cambiado
+
+- Documentación: README (instalación por formato, límites y flag),
+  guion de defensa (sección 9/10/12), ADR-006 enlazado al 007, auditoría
+  de pruebas y `RELEASES.md`.
 
 ## [2.6.2] — 2026-11-27 (etiqueta git `v1.3.1`, fase 10)
 

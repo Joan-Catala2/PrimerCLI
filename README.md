@@ -3,13 +3,14 @@
 [![tests](https://github.com/Joan-Catala2/PrimerCLI/actions/workflows/tests.yml/badge.svg)](https://github.com/Joan-Catala2/PrimerCLI/actions/workflows/tests.yml)
 [![cobertura](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/Joan-Catala2/PrimerCLI/badges/data.json)](https://github.com/Joan-Catala2/PrimerCLI/actions/workflows/tests.yml)
 
-CLI que organiza archivos descargados (apuntes, PDFs, enunciados...) en
+CLI que organiza archivos descargados (apuntes, PDFs, DOCX, enunciados...) en
 carpetas por **asignatura** y **tema**, usando el nombre del archivo y,
-opcionalmente, el contenido de los PDF.
+opcionalmente, el contenido de los PDF y DOCX.
 
 Documentación: [historial de releases](RELEASES.md) ·
 [cambios por versión](docs/CHANGELOG.md) ·
-[auditoría de pruebas](docs/auditoria-tests.md).
+[auditoría de pruebas](docs/auditoria-tests.md) ·
+[decisiones (ADR)](docs/adr/).
 
 ```
 Organizado/
@@ -31,11 +32,17 @@ Organizado/
 pip install .
 ```
 
-Si quieres además clasificar por el contenido de los PDF (`--contenido`):
+Si quieres además clasificar por el contenido (`--contenido`), instala el
+extra del formato que uses:
 
 ```bash
 pip install ".[pdf]"
+pip install ".[docx]"
+pip install ".[pdf,docx]"
 ```
+
+PDF necesita `pypdf`; DOCX necesita `python-docx`. El paquete base sigue
+siendo stdlib puro y sin dependencias.
 
 También puedes ejecutarla sin instalar nada:
 
@@ -85,12 +92,13 @@ organizador --version
 - `--desde`: solo procesa archivos modificados desde esa fecha
   (`YYYY-MM-DD`).
 - `--contenido`: en `ejecutar`, `revisar` y `explicar`, si el nombre de un
-  PDF no clasifica, se leen sus primeras páginas y se intenta por
-  contenido (necesita `pip install ".[pdf]"`). El nombre siempre manda: el
+  PDF o DOCX no clasifica, se lee su texto y se intenta por contenido
+  (instala `.[pdf]`, `.[docx]` o ambos). El nombre siempre manda: el
   contenido solo salva lo que iría a `_revision`. En `revisar
   --interactivo` la sugerencia aparece marcada como `(contenido)` en el
   prompt, y `explicar` responde `Fuente: contenido`.
-- `--contenido-max-paginas`: páginas leídas por PDF (por defecto 3).
+- `--contenido-max-paginas`: páginas leídas por PDF (por defecto 3); los
+  DOCX se leen completos, acotados a 4000 caracteres.
 - `--confirmar`: muestra el plan y pide confirmación antes de mover.
 - `--json`: emite el resultado en JSON (sin salida humana), útil para
   scripts.
@@ -325,8 +333,9 @@ límites conocidos de la suite. Para defenderlo en vivo: `docs/guion-defensa.md`
 
 ## Límites
 
-- Con `--contenido` lee texto embebido de PDF (`pypdf`); un PDF escaneado
-  (sin capa de texto) no clasifica y sigue yendo a `_revision`. Sin OCR.
+- Con `--contenido` lee texto embebido de PDF (`pypdf`, primeras páginas) o
+  de DOCX (`python-docx`: párrafos, título y tablas); un PDF escaneado sin
+  capa de texto no clasifica y sigue yendo a `_revision`. Sin OCR.
 - Sin `--contenido` el criterio es solo el nombre del archivo.
 - No hay interfaz gráfica.
 - Sin `--recursivo` solo procesa los archivos del primer nivel.

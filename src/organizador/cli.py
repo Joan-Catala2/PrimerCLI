@@ -18,7 +18,7 @@ CARPETA_SUGERIDA = "descargas"
 
 
 def _anadir_flags_contenido(subparser):
-    """Flags del contenido opcional de PDF (ADR-006), compartidos por
+    """Flags del contenido opcional (ADR-006/007), compartidos por
     `ejecutar`, `revisar` y `explicar`. El default de paginas vive en
     `contenido`, no aqui: el parser solo estructura, las decisiones son de
     la accion."""
@@ -27,15 +27,15 @@ def _anadir_flags_contenido(subparser):
     subparser.add_argument(
         "--contenido",
         action="store_true",
-        help="si el nombre no clasifica un PDF, intenta clasificar por su "
-        "contenido (necesita `pip install organizador[pdf]`)",
+        help="si el nombre no clasifica un PDF o DOCX, intenta clasificar "
+        "por contenido (extra `organizador[pdf,docx]` según el formato)",
     )
     subparser.add_argument(
         "--contenido-max-paginas",
         type=int,
         default=MAX_PAGINAS_POR_DEFECTO,
         metavar="N",
-        help="paginas leidas por PDF con --contenido (por defecto: %(default)s)",
+        help="paginas leidas por PDF con --contenido (DOCX no usa paginas; por defecto: %(default)s)",
     )
 
 
