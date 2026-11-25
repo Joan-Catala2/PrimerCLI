@@ -6,18 +6,18 @@ Resumen ejecutivo de la suite, mapa requisito → prueba → caso feo, sensibili
 
 | Métrica | Valor |
 |---|---|
-| Pruebas recopiladas | 260 (259 rapidas + 1 `lento`) |
-| Resultado | 260 passed, 0 failed, 0 skipped (rapidas: 259) |
-| Cobertura global | 92.99 % (2012 sentencias, 141 sin cubrir) |
+| Pruebas recopiladas | 278 (277 rapidas + 1 `lento`) |
+| Resultado | 278 passed, 0 failed, 0 skipped (rapidas: 277) |
+| Cobertura global | 93.18 % (2054 sentencias, 140 sin cubrir) |
 | Umbral CI | 85 % (`--cov-fail-under=85`) |
 | Archivos con cobertura completa | 10 de 26 (los 16 restantes tienen ≥1 línea) |
-| Tiempo local | ≈ 2.5 s en Python 3.10.12 |
-| Prueba más lenta | `test_cli_instalado_no_filtra_la_clave_de_entorno`, ≈ 0.26 s |
+| Tiempo local | ≈ 3.1 s en Python 3.10.12 (rapidas) |
+| Prueba más lenta | `test_cli_instalado_no_filtra_la_clave_de_entorno`, ≈ 0.27 s |
 | Lint / tipos | `ruff check .`, `ruff format --check .`, `mypy src` y `mypy tests` limpios |
 | Secretos | `scripts/check_secretos.py $(git ls-files)` limpio |
 | Matriz CI | Ubuntu 24.04 (3.10–3.13) + Windows (3.12, 3.13) |
 
-Conclusión: la suite cubre los ocho comandos, el punto de entrada real, los errores previsibles, el modo JSON, el deshacer, las reglas personalizadas, la IA con fallback y la higiene de credenciales. Añadida en la fase de higiene: contrato de versionado (`test_version_de_instalacion_igual_a_la_del_paquete`, `test_version_del_pyproject_es_dinamica`), candado del catálogo empaquetado (`test_catalogo_del_paque_no_esta_corrupto`) y doc sin deriva (`tests/test_docs_readme.py`). Añadida en la fase 7 (`aplicar`): 21 pruebas en `tests/test_acciones_aplicar.py` — inferencia pura (`sugerir_alias`), fusión de reglas, EOF, colisión y deshacer — más el candado de banderas fantasma en el README. Añadida en la fase 7B (`verificar`): 26 pruebas en `tests/test_acciones_verificar.py` — cinco detectores, JSON, códigos de salida, papelera y restauración exacta por `deshacer` (una de ellas, la ruta relativa del log de poda, se corrigió durante la auditoría: ver §5). Dos fallos reales aparecieron durante la auditoría original y quedaron corregidos con regresión (ver §5).
+Conclusión: la suite cubre los ocho comandos, el punto de entrada real, los errores previsibles, el modo JSON, el deshacer, las reglas personalizadas, la IA con fallback, la higiene de credenciales y la lectura opcional de PDF y DOCX. Añadida en la fase de higiene: contrato de versionado (`test_version_de_instalacion_igual_a_la_del_paquete`, `test_version_del_pyproject_es_dinamica`), candado del catálogo empaquetado (`test_catalogo_del_paque_no_esta_corrupto`) y doc sin deriva (`tests/test_docs_readme.py`). Añadida en la fase 7 (`aplicar`): 21 pruebas en `tests/test_acciones_aplicar.py` — inferencia pura (`sugerir_alias`), fusión de reglas, EOF, colisión y deshacer — más el candado de banderas fantasma en el README. Añadida en la fase 7B (`verificar`): 26 pruebas en `tests/test_acciones_verificar.py` — cinco detectores, JSON, códigos de salida, papelera y restauración exacta por `deshacer` (una de ellas, la ruta relativa del log de poda, se corrigió durante la auditoría: ver §5). Dos fallos reales aparecieron durante la auditoría original y quedaron corregidos con regresión (ver §5). La fase 10 añadió la auditoría del sdist en venv real; la fase 11 añadió 18 pruebas de DOCX con archivos reales (`tests/test_docx.py`).
 
 ## 2. Cómo reproducir
 
@@ -49,7 +49,10 @@ necesita venv + build + ~1 min, va marcado `lento`: la matriz de tests lo
 excluye (`pytest -m "not lento"`, para que la cobertura no se vea
 distorsionada por subprocess) y el job `lint` lo ejecuta explicitamente.
 Si el interprete no puede crear venvs o `pypdf` vive dentro de el, el
-test hace `skip` honesto — nunca falso verde.
+test hace `skip` honesto — nunca falso verde. La auditoría lenta cubre el
+extra `[pdf]`; el extra `[docx]` se ejerce con DOCX reales en
+`tests/test_docx.py` (no en un venv aislado: `lxml` no se puede prestar
+como rueda local sin red de forma fiable, limitación registrada en ADR-007).
 
 Para ver la prueba lenta:
 
@@ -72,14 +75,14 @@ La suite no necesita red, credenciales reales ni servicios externos (la auditor�
 | `acciones/sugerir.py` | 111 | 4 | 96 % | Aviso IA no configurada y variantes de presentación |
 | `acciones/verificar.py` | 218 | 13 | 94 % | Defensas de IO (hash ilegible, papelera ausente) y ramas de aviso |
 | `cli.py` | 93 | 2 | 98 % | Líneas 348/377 cubiertas por subprocess real; 377 es el `if __name__` del módulo |
-| `contenido.py` | 74 | 2 | 97 % | Dos ramas defensivas de lectura (`is_encrypted` y página `None`) |
-| `organizador.py` | 180 | 16 | 91 % | Defensas de MOV/formatos raros y `main` delegado |
+| `contenido.py` | 115 | 3 | 97 % | Ramas defensivas de PDF cifrado y su `raise` (113/121) y el `raise` equivalente del DOCX (172) |
+| `organizador.py` | 181 | 14 | 92 % | Defensas de MOV/formatos raros y `main` delegado |
 | `presentacion/consola.py` | 66 | 4 | 94 % | Ramas de confirmación/aviso en errores extraños |
 | `proveedor/api.py` | 97 | 8 | 92 % | Validaciones defensivas de respuestas malformadas |
 | `proveedor/base.py` | 38 | 1 | 97 % | Método abstracto nunca instanciado |
 | `registro.py` | 75 | 9 | 88 % | Rutas relativas, logs corruptos y sobreescritura defensiva |
 | `reglas.py` | 156 | 12 | 92 % | Validaciones defensivas de reglas |
-| **TOTAL** | **2012** | **141** | **92.99 %** | — |
+| **TOTAL** | **2054** | **140** | **93.18 %** | — |
 
 Nota: los otros 10 módulos del paquete (`__init__.py`, `__main__.py`,
 `excepciones.py`, `acciones/__init__.py`, `acciones/base.py`,
@@ -132,11 +135,12 @@ en los e2e de subprocess, y la 377 se ejercita via `runpy` en
 | Version con una sola fuente | `tests/test_cli.py::test_version_de_instalacion_igual_a_la_del_paquete`, `test_version_del_pyproject_es_dinamica` | Alguien fija `version` en el TOML y el `--version` instalado diverge del módulo |
 | Escudo de cobertura | `tests/test_badge.py::test_porcentaje_y_color_bueno`, `test_por_debajo_del_umbral_en_rojo`, `test_xml_roto_es_error_de_cl` | El badge miente (verde con <85 %) o el workflow revienta con un XML inesperado |
 | Paquete publicado (`lento`) | `tests/test_paquete.py::test_sdist_instalado_sin_extra_y_con_extra` | El artefacto de la release no se instala, `--version` diverge del modulo, o `--contenido` sin el extra `[pdf]` no da el error humano de instalacion (los unitarios lo simulan con un doble; este lo prueba en un venv real) |
-| Paquete publicado (`lento`) | `tests/test_paquete.py::test_sdist_instalado_sin_extra_y_con_extra` | El artefacto de la release no se instala, `--version` diverge del modulo, o `--contenido` sin el extra `[pdf]` no da el error humano de instalacion (los unitarios lo simulan con un doble; este lo prueba en un venv real) |
 | Contenido de PDF (lector) | `tests/test_contenido.py::test_texto_pdf_respeta_max_paginas`, `test_texto_pdf_valida_max_paginas`, `test_texto_pdf_trunca_sin_reventar`, `test_texto_pdf_sin_extra_es_error_humano`, `test_texto_pdf_con_archivo_basura_es_fallo_previsto` | `--contenido` revienta con un PDF raro, lee mas paginas de las pedidas, o pide instalar algo que no existe |
-| Contenido de PDF (reglas) | `tests/test_contenido.py::test_mysql_no_es_sql`, `test_tema_detectado_con_frontera`, `test_alias_inutil_no_participa`, `test_clasifica_con_las_reglas_del_paquete_por_defecto` | Un subcadena convierte `mysql` en `BaseDeDatos`; el escudo deja de reportar el catalogo real |
-| Contenido de PDF (motor) | `tests/test_contenido.py::test_el_nombre_manda_aunque_el_contenido_diga_otra_cosa`, `test_extractor_no_toca_los_no_pdf`, `test_extractor_ilegible_avisa_y_sigue_a_revision` | El contenido pisa una clasificacion por nombre; se leen txts; un PDF ilegible aborta la pasada |
-| Contenido de PDF (CLI) | `tests/test_contenido.py::test_ejecutar_contenido_con_pdf_real`, `test_ejecutar_contenido_json_muestra_origen`, `test_ejecutar_sin_contenido_ignora_el_pdf`, `test_revisar_interactivo_marca_contenido_en_el_prompt`, `test_explicar_contenido_fuente_contenido`, `test_contenido_max_paginas_invalido_es_error_de_uso`, `tests/test_acciones.py::test_ejecutar_con_contenido_inyecta_extractor` | `--contenido` no mueve; el JSON no dice el origen; sin flag se lee contenido; la marca falta; `explicar` miente; `--contenido-max-paginas 0` no falla al construir |
+| Contenido de DOCX (lector) | `tests/test_docx.py::test_texto_docx_lee_titulo_parrafos_y_tablas`, `test_texto_docx_trunca_sin_reventar`, `test_texto_docx_sin_extra_es_error_humano`, `test_texto_docx_con_archivo_basura_es_fallo_previsto` | El DOCX se abre pero pierde titulo o tablas; un archivo roto tumba la CLI; sin el extra se pide instalar `[docx]` con el mensaje equivocado |
+| Despacho por extension | `tests/test_docx.py::test_es_lexible_por_extension`, `test_texto_documento_elige_el_lector_por_extension`, `test_texto_documento_rechaza_formatos_no_lexibles`, `test_texto_documento_valida_max_paginas` | Un `.txt` se abre, un `.DOCX` mayusculo se ignora, se usa el lector equivocado o el limite de paginas se pierde |
+| Contenido (reglas) | `tests/test_contenido.py::test_mysql_no_es_sql`, `test_tema_detectado_con_frontera`, `test_alias_inutil_no_participa`, `test_clasifica_con_las_reglas_del_paquete_por_defecto` | Un subcadena convierte `mysql` en `BaseDeDatos`; el escudo deja de reportar el catalogo real |
+| Contenido (motor) | `tests/test_contenido.py::test_el_nombre_manda_aunque_el_contenido_diga_otra_cosa`, `test_extractor_no_toca_los_no_pdf`, `test_extractor_ilegible_avisa_y_sigue_a_revision`, `tests/test_docx.py::test_motor_clasifica_docx_por_contenido`, `test_motor_no_lee_txt_con_contenido` | El contenido pisa una clasificacion por nombre; se leen txts; un DOCX no se abre; un documento ilegible aborta la pasada |
+| Contenido (CLI) | `tests/test_contenido.py::test_ejecutar_contenido_con_pdf_real`, `test_ejecutar_contenido_json_muestra_origen`, `test_revisar_interactivo_marca_contenido_en_el_prompt`, `test_explicar_contenido_fuente_contenido`, `test_contenido_max_paginas_invalido_es_error_de_uso`, `tests/test_docx.py::test_ejecutar_con_docx_real`, `test_ejecutar_docx_sin_extra_es_error_humano_y_no_mueve`, `test_explicar_docx_fuente_contenido`, `test_revisar_docx_sugiere_contenido`, `tests/test_acciones.py::test_ejecutar_con_contenido_inyecta_extractor` | `--contenido` no mueve; el JSON no dice el origen; sin flag se lee contenido; la marca falta; `explicar` miente; sin `[docx]` se mueve igual; `--contenido-max-paginas 0` no falla al construir |
 | Catalogo de reglas empaquetado | `tests/test_reglas.py::test_catalogo_del_paque_no_esta_corrupto`, `test_cada_asignatura_del_catalogo_se_detecta_por_su_nombre` | Alias vacio o duplicado en `reglas.json` rompe la clasificacion sin romper tests de logica |
 | Doc sin deriva | `tests/test_docs_readme.py::test_readme_documenta_el_comando`, `test_parser_expone_los_comandos_del_readme`, `test_readme_no_promete_variables_de_entorno_inexistentes`, `test_readme_no_documenta_banderas_fantasma` | Comando nuevo sin documentar, env var fantasma o bandera inventada en el README |
 | Contrato de emparejamiento | `tests/test_reglas.py::test_trocear_normaliza_y_separa_camelcase`, `test_coincide_token_secuencia_exacta`, `test_coincide_pegado_delegado_del_motor`, `test_publicas_y_privadas_no_se_contradicen` | `trocear` rompe camelCase donde no hay señales (`basededatos` en un token); alias de 2 letras colándose por la puerta pegada; la pública inventando coincidencias que el motor no produce (la prueba recorre el catálogo en orden: si la pública casa, la ganadora del motor es esa o anterior) |
@@ -163,6 +167,8 @@ No se añadió una librería de mutation testing: el proyecto se mantiene solo c
 | El scanner anti-claves pierde un proveedor | `test_detecta_tokens_de_otros_proveedores` |
 | `.env.example` incluye un valor de ejemplo no vacío | `test_env_example_solo_contiene_nombres_vacios` |
 | `--contenido` construye el extractor sin validarlo | `test_contenido_max_paginas_invalido_falla_antes_de_tocar_nada` (la fábrica debe rechazar `--contenido-max-paginas 0` antes de tocar disco) |
+| `texto_documento` vuelve a llamar siempre a `texto_pdf` | `test_texto_documento_elige_el_lector_por_extension`, `test_ejecutar_con_docx_real` |
+| `_es_leible` se queda solo con `.pdf` | `test_es_lexible_por_extension`, `test_motor_clasifica_docx_por_contenido` |
 
 Durante la auditoría aparecieron mutaciones reales, no hipotéticas:
 
@@ -188,15 +194,17 @@ Durante la auditoría aparecieron mutaciones reales, no hipotéticas:
 
 ## 8. Limitaciones honestas
 
-- Cobertura 93.04 %, no 100 %. Quedan ramas mayormente defensivas en `registro.py`, `organizador.py`, `acciones/aplicar.py` y `proveedor/api.py`.
+- Cobertura 93.18 %, no 100 %. Quedan ramas mayormente defensivas en `registro.py`, `organizador.py`, `acciones/aplicar.py` y `proveedor/api.py`.
 - No hay mutation testing automatizado; §5 documenta pruebas sensibles a mutaciones concretas, no una puntuación de mutantes.
 - No se prueba contra proveedores de IA reales: sería pago, no determinista y contradictorio con las restricciones del proyecto.
-- `--contenido` no hace OCR: un PDF escaneado (sin capa de texto) no clasifica y sigue a `_revision`. Los PDFs de prueba se generan con el propio `pypdf` (`tests/pdfs.py`): se prueba el contrato lector/clasificador, no la fidelidad de `extract_text` de `pypdf` (que es del proveedor).
+- `--contenido` no hace OCR: un PDF escaneado (sin capa de texto) no clasifica y sigue a `_revision`. Los PDFs de prueba se generan con el propio `pypdf` (`tests/pdfs.py`) y los DOCX con `python-docx` (`tests/documentos.py`): se prueba el contrato lector/clasificador, no la fidelidad de `extract_text` de `pypdf` (que es del proveedor).
+- La auditoría lenta del sdist cubre `[pdf]`, no `[docx]`: `lxml` (dependencia de `python-docx`) no se puede prestar como rueda local sin red de forma fiable. El contrato DOCX se ejerce con archivos reales y dobles de import en la suite rápida; ADR-007 lo declara.
 - La matriz CI cubre Linux (3.10–3.13) y Windows (3.12/3.13). macOS no se prueba: los runners `macos-*` de GitHub no están disponibles para cuentas gratuitas (los jobs se cancelan sin pasos); se prefiere honestidad a cobertura fingida.
 - Los mensajes exactos en humano están cubiertos por fragmentos (`in`), no por comparación byte a byte; la intención es detectar pérdida de información, no congelar redacción.
 - Las subprocess e2e dependen de `python -m organizador`, que es precisamente la forma instalable que se quiere auditar; por eso se aceptan ~0.3 s por prueba.
-- El README y `RELEASES.md` se auditan con el contrato `tests/test_docs_readme.py`: ocho comandos documentados y sin banderas inventadas. La etiqueta `v1.1` (versión definitiva, paquete 2.5.0) mantiene la cronología: `v1.0` fue la entrega final con seis comandos; los dos nuevos
-se publican como mejora menor dentro de la misma línea `2.x` del paquete.
+- El README y `RELEASES.md` se auditan con el contrato `tests/test_docs_readme.py`: ocho comandos documentados y sin banderas inventadas. La cronología va de `v1.0` (entrega final, seis comandos, paquete 2.4.0) a
+`v1.4` (DOCX opcional, paquete 2.7.0): cada mejora dentro de la misma línea
+`2.x` del paquete, sin servicios de pago.
 
 ## 9. Veredicto
 

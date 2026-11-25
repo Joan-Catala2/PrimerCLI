@@ -18,7 +18,7 @@ accion nueva no esta registrada. El "porque" esta en el ADR-002.
 
 ## 2. `desde_config`: valida antes de tocar disco
 
-`ejecutar.py:43-59`: en la fabrica se resuelven reglas, registro y filtros,
+`ejecutar.py:44-62`: en la fabrica se resuelven reglas, registro y filtros,
 y `--contenido-max-paginas 0` lanza `ErrorDeUso` sin haber leido un solo
 archivo. Lo congela `tests/test_acciones.py:94`
 (`test_fecha_invalida_falla_antes_de_tocar_el_disco`). La razon de ser:
@@ -113,21 +113,25 @@ La regla de diseno: si una accion puede destruir, ofrece antes ver o anular
 
 ## 9. `--contenido`: que hace y por que el nombre manda
 
-ADR-006: opt-in (`ejecutar/revisar/explicar --contenido`), segunda pasada
-solo para lo que iria a `_revision` (un PDF cuyo nombre clasifica no se
-abre — `test_el_nombre_manda...` lo demuestra con extractor que petaria).
-Fronteras de palabra (`mysql` no activa `sql`) y alias de 1-2 letras
-fuera: en texto continuo son ruido. `pypdf` es extra (`.[pdf]`) con import
-difera: sin el extra, error humano con el comando de instalacion
-(`contenido.py:_leer_pdf`; test con doble en `test_contenido.py`). PDF
-corrupto/cifrado/escaneado: aviso por stderr y `_revision`, nunca
-traceback. Y `explicar --contenido` lo dice honesto: `Fuente: contenido`.
+ADR-006 y ADR-007: opt-in (`ejecutar/revisar/explicar --contenido`), segunda
+pasada solo para lo que iria a `_revision` (un PDF o DOCX cuyo nombre
+clasifica no se abre — `test_el_nombre_manda...` lo demuestra con extractor
+que petaria). Fronteras de palabra (`mysql` no activa `sql`) y alias de 1-2
+letras fuera: en texto continuo son ruido. Cada lector es extra con import
+diferido: `.[pdf]` (`pypdf`) o `.[docx]` (`python-docx`); sin el extra, error
+humano con su comando de instalacion (`contenido.py:_leer_pdf` y
+`_leer_docx`; dobles en `test_contenido.py` y `test_docx.py`). Un documento
+corrupto, cifrado o escaneado: aviso por stderr y `_revision`, nunca
+traceback. `texto_documento` despacha por extension y las tres fabricas
+inyectan esa unica funcion. Y `explicar --contenido` lo dice honesto:
+`Fuente: contenido`.
 
 ## 10. Instalacion y release
 
-README: `pip install .` (o `.[pdf]`), y `PYTHONPATH=src python -m
-organizador` sin instalar. Releases etiquetadas `v1.0`..`v1.3` con
-CHANGELOG, GitHub Releases con sdist+wheel construidos por CI (no PyPI:
+README: `pip install .` (o `.[pdf]`, `.[docx]`, `.[pdf,docx]`), y
+`PYTHONPATH=src python -m organizador` sin instalar. Releases etiquetadas
+`v1.0`..`v1.4` con CHANGELOG, GitHub Releases con sdist+wheel construidos
+por CI (no PyPI:
 sin servicios externos, artefactos verificables). CI: matriz Ubuntu
 3.10-3.13 + Windows 3.12/3.13, ruff, mypy (src+tests), secretos, build
 strict, badge self-hosted. `--version` y metadatos del paquete salen del
@@ -153,12 +157,13 @@ unico destructor reversible de la CLI.
 - "Por que no publicais en PyPI?" — Decision de alcance: artefactos en
   GitHub Releases (instalables con `pip install <whl>`), sin cuentas ni
   servicios. Si algun dia, el job `build` ya esta hecho.
-- "Cuantas lineas de test hay y que no cubren?" — 259 pruebas, 93 %. No
-  cubren: defensas de IO imposibles de disparar sin root, y la fidelidad
-  del `extract_text` de `pypdf` (dependencia de terceros). Limite honesto:
-  auditoria §8.
-- "El proyecto es tuyo?" — Todo el codigo y su justificacion (6 ADRs) en el
-  historial con PRs #1-#17; las decisiones importantes estan razonadas en
+- "Cuantas lineas de test hay y que no cubren?" — 277 rapidas + 1 lenta,
+  93 %. No cubren: defensas de IO imposibles de disparar sin root, la
+  fidelidad de `extract_text` de `pypdf` y la instalacion aislada del extra
+  `[docx]` en el sdist (su `lxml` no se puede prestar sin red). Limite
+  honesto: auditoria §8 y ADR-007.
+- "El proyecto es tuyo?" — Todo el codigo y su justificacion (7 ADRs) en el
+  historial con PRs #1-#20; las decisiones importantes estan razonadas en
   docs, no magicas.
 
 ## Como ensayar

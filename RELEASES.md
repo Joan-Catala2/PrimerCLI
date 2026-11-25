@@ -4,13 +4,55 @@ Historial de entregas del CLI `organizador`. La etiqueta `v1.0` marca la
 entrega final del proyecto; la etiqueta `v1.1` es la **versión definitiva**;
 la etiqueta `v1.2` añade la fase 8 (clasificación opcional por el texto de
 los PDF); la etiqueta `v1.3` publica la fase 9 (documentación de extensión
-y superficie pública de emparejamiento, sin cambios de comportamiento). El
-número interno del paquete conserva la cronología `2.x`
-(`organizador --version` muestra `2.6.2`).
+y superficie pública de emparejamiento); la `v1.3.1` audita el sdist; la
+`v1.4` añade la fase 11 (DOCX opcional con la misma bandera). El número
+interno del paquete conserva la cronología `2.x`
+(`organizador --version` muestra `2.7.0`).
 
 El detalle línea a línea de cada versión vive en
 [docs/CHANGELOG.md](docs/CHANGELOG.md). Esta página resume las entregas y sus
 verificaciones.
+
+## v1.4 — fase 11: DOCX opcional (mejora menor)
+
+- **Fecha**: 2026-11-27
+- **Tag**: `v1.4`
+- **Base técnica**: PR #20 (rama `feat/docx-contenido`)
+- **Paquete**: `organizador` 2.7.0
+- **Python**: 3.8+ (CI verificada en Ubuntu 3.10–3.13 y Windows 3.12/3.13)
+
+`--contenido` cubre ahora PDF y DOCX con la misma bandera y la misma
+segunda pasada. El nombre sigue mandando; el DOCX solo se abre si el nombre
+no clasifica. El extra `organizador[docx]` instala `python-docx>=1.1,<2`;
+`organizador[pdf]` sigue siendo suficiente para PDF y `.[pdf,docx]` instala
+ambos. El core no gana dependencias: los imports siguen siendo diferidos.
+
+### Contenido
+
+- `src/organizador/contenido.py`: `texto_docx`, `texto_documento`,
+  `es_lexible` y `EXTENSIONES_LEXIBLES`; titulo, parrafos y tablas, con el
+  techo de 4000 caracteres. `--contenido-max-paginas` queda reservado a PDF.
+- Motor y fabricas: una sola decision por extension inyectada en `ejecutar`,
+  `revisar` y `explicar`; el motor pregunta por `.pdf`/`.docx` y nunca por
+  `.txt`. JSON y humanos conservan `origen=contenido` y `Fuente: contenido`.
+- `docs/adr/007-docx-opcional.md` (ADR-006 queda enlazado), README, guion de
+  defensa, CHANGELOG y auditoria actualizados.
+- `tests/documentos.py` + 18 pruebas en `tests/test_docx.py`: DOCX reales,
+  extra ausente, archivo corrupto, despacho por extension, motor y tres
+  comandos. Limitacion declarada: la auditoria lenta del sdist sigue
+  cubriendo `[pdf]`; `[docx]` se prueba en suite rapida (ADR-007).
+
+### Verificación (commit de release)
+
+| Comprobación | Resultado |
+|---|---|
+| `ruff check .` / `ruff format --check .` | limpio |
+| `mypy src` / `mypy tests` | limpio |
+| `pytest -m "not lento" --cov=organizador --cov-fail-under=85` | 277 passed, 93.18 % |
+| `pytest tests/test_paquete.py -m lento` | 1 passed (sdist en venv real, `[pdf]`) |
+| `git ls-files -z \| xargs -0 python scripts/check_secretos.py` | limpio |
+| CI en `main` post-fusión | verde (matriz completa) |
+| Auditoría detallada | `docs/auditoria-tests.md` |
 
 ## v1.3.1 — fase 10: auditoría del sdist (parche)
 

@@ -5,8 +5,8 @@ sugerencia, `-` quita el tema, `q` termina y un EOF deja el resto en
 revision sin perder nada. El codigo 130 (cancelado por el usuario) se
 conserva por compatibilidad.
 
-Con `--contenido` (ADR-006), si el nombre del archivo no sugiere ninguna
-asignatura se lee el PDF y esa sugerencia sale entre parentesis para no
+Con `--contenido` (ADR-006/007), si el nombre no sugiere ninguna asignatura
+se lee el PDF o DOCX y esa sugerencia sale entre parentesis para no
 confundirse con la deteccion por nombre.
 """
 
@@ -53,14 +53,14 @@ class AccionRevisar(Accion):
 
         extractor = None
         if getattr(args, "contenido", False):
-            from ..contenido import texto_pdf
+            from ..contenido import texto_documento
 
             max_paginas = args.contenido_max_paginas
             if max_paginas < 1:
                 raise ErrorDeUso("--contenido-max-paginas debe ser 1 o mas.")
 
             def extraer(ruta):
-                return texto_pdf(ruta, max_paginas)
+                return texto_documento(ruta, max_paginas)
 
             extractor = extraer
 
@@ -175,15 +175,16 @@ class AccionRevisar(Accion):
         """(asignatura, tema, origen) para un archivo de _revision.
 
         El nombre manda; si no dice nada y hay extractor, se prueba con el
-        contenido del PDF. Un PDF ilegible avisa por stderr y no rompe la
-        sesion. `origen` es 'nombre', 'contenido' o '' (sin sugerencia).
+        contenido del PDF o DOCX. Un documento ilegible avisa por stderr y no
+        rompe la sesion. `origen` es 'nombre', 'contenido' o '' (sin sugerencia).
         """
         sugerencia = clasificar(archivo.name, self.reglas)
         if sugerencia is not None:
             return sugerencia[0], sugerencia[1], "nombre"
-        if self.extractor is None or not archivo.name.lower().endswith(".pdf"):
+        from ..contenido import ExtraccionFallida, clasificar_por_contenido, es_lexible
+
+        if self.extractor is None or not es_lexible(archivo.name):
             return "", "", ""
-        from ..contenido import ExtraccionFallida, clasificar_por_contenido
 
         try:
             texto = self.extractor(archivo)

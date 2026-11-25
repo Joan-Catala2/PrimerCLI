@@ -127,11 +127,11 @@ def limpiar_vacias(base):
 
 
 def _clasificar_por_contenido(archivo, extractor, reglas, avisos):
-    """Segundo intento (ADR-006): leer el PDF y casar su texto.
+    """Segundo intento (ADR-006/007): leer el documento y casar su texto.
 
-    El extractor es inyectado: el motor no conoce `pypdf`. Si leer o
-    casar falla, se anota un aviso y el archivo sigue a `_revision`:
-    un PDF ilegible es un caso previsto, no un error. Devuelve
+    El extractor es inyectado: el motor no conoce `pypdf` ni `python-docx`. Si
+    leer o casar falla, se anota un aviso y el archivo sigue a `_revision`:
+    un documento ilegible es un caso previsto, no un error. Devuelve
     `(resultado, aviso)`; el aviso es None cuando el resultado existe.
     """
     from .contenido import ExtraccionFallida, clasificar_por_contenido
@@ -170,9 +170,9 @@ def organizar(
     usan las del paquete. `recursivo` recorre subcarpetas; `extensiones`,
     `excluir` y `desde` filtran que archivos se procesan. `ignorar` es una
     lista de rutas que nunca se recorren (por ejemplo, la carpeta de logs).
-    `extractor` (opcional, ADR-006) es una funcion `ruta -> texto` que lee
-    el contenido de un PDF cuyo nombre no clasifico: si el texto casa con
-    una regla, el archivo se organiza por contenido en vez de ir a
+    `extractor` (opcional, ADR-006/007) es una funcion `ruta -> texto` que lee
+    el contenido de un PDF o DOCX cuyo nombre no clasifico: si el texto casa
+    con una regla, el archivo se organiza por contenido en vez de ir a
     `_revision`. `max_paginas` se pasa al extractor para que la capa de
     accion lo valide con `ErrorDeUso` antes de recorrer nada; el motor no
     la usa (no conoce el formato de lectura).
@@ -193,10 +193,10 @@ def organizar(
     if not origen.is_dir():
         raise CarpetaNoValidaError("El origen no es una carpeta: {}".format(origen))
 
-    def _es_pdf(nombre):
-        # `Path.suffix` mira el ultimo punto: `apuntes.pdf` es un PDF a todos
-        # los efectos, y el lector no puede decir lo contrario.
-        return nombre.lower().endswith(".pdf")
+    def _es_leible(nombre):
+        from .contenido import EXTENSIONES_LEXIBLES
+
+        return nombre.lower().endswith(EXTENSIONES_LEXIBLES)
 
     if salida == origen or origen in salida.parents:
         raise CarpetaNoValidaError(
@@ -230,7 +230,7 @@ def organizar(
         try:
             resultado = clasificar(archivo.name, reglas)
             origen_clasificacion = "nombre"
-            if resultado is None and extractor is not None and _es_pdf(archivo.name):
+            if resultado is None and extractor is not None and _es_leible(archivo.name):
                 resultado, aviso = _clasificar_por_contenido(
                     archivo, extractor, reglas, avisos
                 )

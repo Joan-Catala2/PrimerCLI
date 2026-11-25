@@ -55,14 +55,14 @@ class AccionEjecutar(Accion):
             "ignorar": [Path(args.logs_dir).resolve()],
         }
         if getattr(args, "contenido", False):
-            from ..contenido import texto_pdf
+            from ..contenido import texto_documento
 
             max_paginas = args.contenido_max_paginas
             if max_paginas < 1:
                 raise ErrorDeUso("--contenido-max-paginas debe ser 1 o mas.")
 
             def extraer(ruta):
-                return texto_pdf(ruta, max_paginas)
+                return texto_documento(ruta, max_paginas)
 
             opciones["extractor"] = extraer
         return cls(
@@ -108,7 +108,7 @@ class AccionEjecutar(Accion):
     def _guardar_si_procede(self, resumen, simulado):
         """Escribe el log solo si hubo movimientos o errores reales.
 
-        Los avisos de lectura (PDFs cifrados o ilegibles) no lo justifican:
+        Los avisos de lectura (documentos cifrados o ilegibles) no lo justifican:
         no hubo efectos que deshacer.
         """
         if simulado or not (resumen["movimientos"] or resumen["errores"]):

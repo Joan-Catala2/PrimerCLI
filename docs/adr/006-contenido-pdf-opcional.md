@@ -3,6 +3,7 @@
 - **Estado**: Aceptado
 - **Fecha**: 2026-11-24
 - **Contexto**: Fase 8 (post-v1.1)
+- **Extendido por**: [ADR 007](007-docx-opcional.md) (DOCX con la misma bandera)
 
 ## Contexto
 

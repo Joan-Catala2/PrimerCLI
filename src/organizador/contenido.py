@@ -1,19 +1,19 @@
-"""Contenido de los archivos: lectura opcional de PDF para clasificar.
+"""Contenido de los archivos: lectura opcional de PDF y DOCX.
 
 Este modulo existe para que la CLI pueda organizar apuntes cuyo nombre no
-dice nada (`Tema4.pdf`) leyendo las primeras paginas del PDF. Tres reglas
-de diseno (ADR-006) lo mantienen a raya:
+dice nada (`Tema4.pdf`, `Tema4.docx`) leyendo el texto del documento. Tres
+reglas de diseno (ADR-006 y ADR-007) lo mantienen a raya:
 
 - **Opt-in**: solo se usa con `--contenido`; sin flag nada cambia.
 - **El nombre siempre manda**: el contenido es un segundo intento para lo
   que por nombre caeria en `_revision`.
-- **Frontera de palabra**: el texto del PDF es continuo; `SQL` no puede
+- **Frontera de palabra**: el texto extraido es continuo; `SQL` no puede
   casar dentro de `mysql`. Los alias de un digito o dos del catalogo
   (temas `1`, `2`, `T1`...) no valen aqui: serian falsos positivos.
 
-La dependencia (`pypdf`) es opcional: se importa dentro de `texto_pdf`.
-Sin el extra, la CLI responde un error humano con el comando de
-instalacion, nunca un traceback.
+Cada lector es opcional (`pypdf`, `python-docx`) y se importa dentro de su
+funcion. Sin el extra correspondiente, la CLI responde un error humano con
+el comando de instalacion, nunca un traceback.
 """
 
 import importlib
@@ -31,10 +31,23 @@ LIMITE_CARACTERES = 4000
 #: Alias mas cortos aceptados en contenido (ver ADR-006, punto 5).
 LARGO_MINIMO_ALIAS = 3
 
-_MENSAJE_SIN_EXTRA = (
+#: Extensiones leibles por `--contenido`, con un extra opcional por formato.
+EXTENSIONES_LEXIBLES = (".pdf", ".docx")
+
+_MENSAJE_SIN_EXTRA_PDF = (
     "Leer el contenido de los PDFs necesita la dependencia opcional "
     "`pypdf`: instalala con `pip install organizador[pdf]`."
 )
+
+_MENSAJE_SIN_EXTRA_DOCX = (
+    "Leer el contenido de los DOCX necesita la dependencia opcional "
+    "`python-docx`: instalala con `pip install organizador[docx]`."
+)
+
+
+def es_lexible(nombre):
+    """True si el nombre termina en una extension leible por `--contenido`."""
+    return str(nombre).lower().endswith(EXTENSIONES_LEXIBLES)
 
 
 class ExtraccionFallida(Exception):
@@ -89,7 +102,7 @@ def _leer_pdf(ruta, max_paginas):
     try:
         importlib.import_module("pypdf")
     except ImportError as error:
-        raise ErrorDeUso(_MENSAJE_SIN_EXTRA) from error
+        raise ErrorDeUso(_MENSAJE_SIN_EXTRA_PDF) from error
 
     # El import esta arriba; aqui se usa la via canonica para que mypy y
     # cualquier releedor vean de donde sale el modulo.
@@ -124,6 +137,59 @@ def texto_pdf(ruta, max_paginas=MAX_PAGINAS_POR_DEFECTO):
     if max_paginas < 1:
         raise ErrorDeUso("--contenido-max-paginas debe ser 1 o mas.")
     return _leer_pdf(ruta, max_paginas)
+
+
+def _leer_docx(ruta):
+    """Lee el DOCX con `python-docx` y devuelve su texto acotado.
+
+    Se leen parrafos, titulo y celdas de tabla: en apuntes de ofimatica el
+    encabezado suele estar en la tabla o en las propiedades del documento.
+    Sin el extra se traduce a `ErrorDeUso`; cualquier lectura imposible es
+    `ExtraccionFallida`, nunca un traceback.
+    """
+    try:
+        importlib.import_module("docx")
+    except ImportError as error:
+        raise ErrorDeUso(_MENSAJE_SIN_EXTRA_DOCX) from error
+
+    docx = importlib.import_module("docx")
+    try:
+        documento = docx.Document(str(ruta))
+        trozos = []
+        propiedades = getattr(documento, "core_properties", None)
+        titulo = getattr(propiedades, "title", "")
+        if titulo and titulo.strip():
+            trozos.append(titulo)
+        for parrafo in documento.paragraphs:
+            if parrafo.text.strip():
+                trozos.append(parrafo.text)
+        for tabla in documento.tables:
+            for fila in tabla.rows:
+                for celda in fila.cells:
+                    if celda.text.strip():
+                        trozos.append(celda.text)
+    except ExtraccionFallida:
+        raise
+    except Exception as error:
+        raise ExtraccionFallida("el DOCX no se pudo leer ({})".format(error)) from error
+    return " ".join(trozos)[:LIMITE_CARACTERES]
+
+
+def texto_docx(ruta):
+    """Devuelve el texto de un DOCX; no depende de `max_paginas`."""
+    return _leer_docx(ruta)
+
+
+def texto_documento(ruta, max_paginas=MAX_PAGINAS_POR_DEFECTO):
+    """Lee un PDF o un DOCX con el extractor que corresponda a su extension."""
+    if max_paginas < 1:
+        raise ErrorDeUso("--contenido-max-paginas debe ser 1 o mas.")
+    nombre = str(ruta)
+    if nombre.lower().endswith(".docx"):
+        return _leer_docx(ruta)
+    if nombre.lower().endswith(".pdf"):
+        return _leer_pdf(ruta, max_paginas)
+    raise ExtraccionFallida("formato no compatible con --contenido: {}".format(nombre))
 
 
 def clasificar_por_contenido(texto, reglas=None):
