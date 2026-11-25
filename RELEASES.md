@@ -17,7 +17,8 @@ verificaciones.
 
 - **Fecha**: 2026-11-27
 - **Tag**: `v1.4`
-- **Base técnica**: PR #20 (rama `feat/docx-contenido`)
+- **Base técnica**: PR #20 (commit funcional `45291d2`); el tag apunta al
+  commit de release con esta documentación cerrada.
 - **Paquete**: `organizador` 2.7.0
 - **Python**: 3.8+ (CI verificada en Ubuntu 3.10–3.13 y Windows 3.12/3.13)
 
