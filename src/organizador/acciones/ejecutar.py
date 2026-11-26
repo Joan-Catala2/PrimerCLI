@@ -5,12 +5,10 @@ La fecha de `--desde` se valida en la fabrica: el parser solo acepta texto;
 quien sabe de formatos es esta capa, que puede explicar el error en humano.
 """
 
-from pathlib import Path
-
 from ..excepciones import ErrorDeUso
 from ..organizador import organizar
 from .base import Accion
-from .util import extensiones_de, parsear_fecha
+from .util import extensiones_de, parsear_fecha, ruta_de, ruta_no_vacia
 
 
 class AccionEjecutar(Accion):
@@ -52,7 +50,7 @@ class AccionEjecutar(Accion):
             "extensiones": extensiones_de(args.extension),
             "excluir": args.excluir,
             "desde": parsear_fecha(args.desde),
-            "ignorar": [Path(args.logs_dir).resolve()],
+            "ignorar": [ruta_de(args.logs_dir, "--logs-dir")],
         }
         if getattr(args, "contenido", False):
             from ..contenido import texto_documento
@@ -67,15 +65,15 @@ class AccionEjecutar(Accion):
             opciones["extractor"] = extraer
         return cls(
             consola=consola,
-            origen=Path(args.origen).resolve(),
-            salida=Path(args.salida).resolve(),
+            origen=ruta_de(args.origen, "origen"),
+            salida=ruta_de(args.salida, "--salida"),
             reglas=reglas,
             registro=Registro.desde_config(args),
             opciones=opciones,
             simular=args.simular,
             confirmar=args.confirmar,
             seco=args.seco,
-            log=args.log,
+            log=ruta_no_vacia(args.log, "--log"),
         )
 
     def ejecutar(self):

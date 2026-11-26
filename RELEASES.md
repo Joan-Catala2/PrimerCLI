@@ -8,11 +8,56 @@ y superficie pública de emparejamiento); la `v1.3.1` audita el sdist; la
 `v1.4` añade la fase 11 (DOCX opcional con la misma bandera) y la `v1.4.1`
 es el parche de cierre (quickstart, resumen alineado y auditoría lenta
 portable). El número interno del paquete conserva la cronología `2.x`
-(`organizador --version` muestra `2.7.1`).
+(`organizador --version` muestra `2.7.2`).
 
 El detalle línea a línea de cada versión vive en
 [docs/CHANGELOG.md](docs/CHANGELOG.md). Esta página resume las entregas y sus
 verificaciones.
+
+## v1.4.2 — endurecimiento del escaneo y de las banderas de ruta
+
+- **Fecha**: 2026-11-26
+- **Tag**: `v1.4.2`
+- **Base técnica**: rama `hardening-escaneo` tras la batería de robustez;
+  el tag apunta al commit de release con esta documentación cerrada.
+- **Paquete**: `organizador` 2.7.2
+- **Python**: 3.8+ (CI verificada en Ubuntu 3.10–3.13 y Windows 3.12/3.13)
+
+Batería de robustez (rutas imposibles, reglas corruptas, nombres hostiles,
+symlinks, fuzz ligero y proveedor de IA contra servidor local controlado).
+Dos familias de fallos propios encontrados y corregidos, cero funciones
+nuevas:
+
+- **Tracebacks previsibles**: `chmod 000` en origen, `_revision`, `Organizado`
+  o el historial de logs lanzaba `PermissionError` con traceback en cuatro
+  comandos. Nuevo `escaneo.py` (`hijos`/`arbol`/`archivos_y_ilegibles`)
+  convierte eso en `ErrorDeSistema` humano con código 1; con `--recursivo`
+  una subcarpeta ilegible es un aviso, no un abort. `arbol` mantiene la
+  semántica de `rglob` (symlinks listados, nunca descendidos) y corta
+  bucles con `realpath`.
+- **Banderas de ruta vacías**: `--salida ""` era `Path("")` = `.`: la CLI
+  movía al directorio actual. `--reglas ""` equivalía a "sin bandera".
+  `--logs-dir ""` hacía `deshacer` contra los JSON del cwd. Ahora todas
+  devuelven `ErrorDeUso` (2) nombrando la bandera.
+
+La IA (servidor OpenAI-compatible local con respuestas válidas, no-JSON,
+sin `choices`, SSE, 500/401, confianza fuera de rango, asignaturas fuera de
+catálogo y timeout de 15 s): degradó a reglas locales **siempre**, con
+aviso, rc 0, JSON intacto y sin que la clave apareciera en stdout, stderr
+ni logs. Sin cambios.
+
+### Verificación (commit de release)
+
+| Comprobación | Resultado |
+|---|---|
+| `ruff check .` / `ruff format --check .` | limpio |
+| `mypy src` / `mypy tests` | limpio |
+| `pytest -m "not lento" --cov=organizador --cov-fail-under=85` | 293 passed, 93.37 % |
+| `pytest tests/test_paquete.py -m lento` | 1 passed (sdist en venv real, `[pdf]`, Python 3.10) |
+| Batería de robustez manual (permisos, symlinks, fuzz, IA fake) | sin tracebacks; ver `docs/auditoria-tests.md` |
+| `git ls-files -z \| xargs -0 python scripts/check_secretos.py` | limpio |
+| CI en `main` post-fusión | verde (matriz completa) |
+| Auditoría detallada | `docs/auditoria-tests.md` |
 
 ## v1.4.1 — parche de cierre: quickstart, resumen alineado y auditoría portable
 
@@ -325,6 +370,7 @@ secretos y la auditoría de pruebas.
 
 | Versión | Hito | Commits/PRs relevantes |
 |---|---|---|
+| 2.7.2 | Endurecimiento: sin tracebacks por permisos y rutas vacías (`escaneo.py`) | tag `v1.4.2` |
 | 2.7.1 | Parche de cierre: quickstart, resumen alineado y auditoría lenta portable | tag `v1.4.1` |
 | 2.7.0 | Fase 11: DOCX opcional con `--contenido` | `45291d2`, PR #20, tag `v1.4` |
 | 2.6.2 | Fase 10: auditoría del sdist publicado (venv real, sin red) | PR #19, tag `v1.3.1` |

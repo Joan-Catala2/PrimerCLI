@@ -28,6 +28,7 @@ from collections import Counter
 from dataclasses import dataclass
 from pathlib import Path
 
+from ..escaneo import hijos
 from ..excepciones import ErrorDeUso
 from ..organizador import mover_archivo
 from ..reglas import (
@@ -42,6 +43,7 @@ from ..reglas import (
     trocear,
 )
 from .base import Accion
+from .util import ruta_de
 
 # Tokens que solo refuerzan la asignatura (tipo de documento, tema numerico,
 # evaluacion...). Nunca deben convertirse en alias: no aportan informacion.
@@ -311,7 +313,7 @@ class AccionAplicar(Accion):
             )
         return cls(
             consola=consola,
-            salida=Path(args.salida).resolve(),
+            salida=ruta_de(args.salida, "--salida"),
             reglas=reglas_efectivas(args.reglas),
             registro=Registro.desde_config(args),
             confirmar=getattr(args, "confirmar", False),
@@ -332,13 +334,13 @@ class AccionAplicar(Accion):
         carpeta = self.salida / REVISION
         if not carpeta.is_dir():
             return self._sin_carpeta(carpeta)
-        archivos = sorted(
+        archivos = [
             p
-            for p in carpeta.iterdir()
+            for p in hijos(carpeta)
             if p.is_file()
             and not p.name.startswith(".")
             and not p.name.startswith("~$")
-        )
+        ]
         if not archivos:
             return self._vacio(carpeta)
 
@@ -460,7 +462,7 @@ class AccionAplicar(Accion):
 
         movidos = []
         errores = []
-        for archivo in sorted(p for p in carpeta.iterdir() if p.is_file()):
+        for archivo in [p for p in hijos(carpeta) if p.is_file()]:
             if clasificar(archivo.name, self.reglas) is not None:
                 continue  # ya era clasificable: no es trabajo de aplicar
             resultado = clasificar(archivo.name, reglas)

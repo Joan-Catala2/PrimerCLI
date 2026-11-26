@@ -12,7 +12,8 @@ import json
 from datetime import datetime
 from pathlib import Path
 
-from .excepciones import ConfigError, afirmar
+from .escaneo import hijos
+from .excepciones import ConfigError, ErrorDeUso, afirmar
 
 CARPETA_LOGS = "organizador-logs"
 
@@ -33,7 +34,9 @@ class Registro:
         Mantiene la ruta tal cual: si es relativa, cada comando la resuelve
         contra su cwd (comportamiento historico de la CLI).
         """
-        return cls(args.logs_dir)
+        from .acciones.util import ruta_no_vacia
+
+        return cls(ruta_no_vacia(args.logs_dir, "--logs-dir"))
 
     def ruta_unica(self, ruta, origen, salida, aviso=None):
         """Devuelve una ruta de log unico que nunca cae dentro de `origen`.
@@ -43,6 +46,8 @@ class Registro:
         pasada no la trate como archivo a organizar. El aviso, si procede,
         va al canal `aviso`.
         """
+        if not str(ruta).strip():
+            raise ErrorDeUso("--log no puede ser vacio.")
         ruta = Path(ruta)
         if not ruta.is_absolute():
             ruta = Path.cwd() / ruta
@@ -105,7 +110,7 @@ class Registro:
         if not self.carpeta.is_dir():
             return []
         return sorted(
-            (p for p in self.carpeta.glob("*.json") if p.is_file()),
+            (p for p in hijos(self.carpeta) if p.suffix == ".json" and p.is_file()),
             key=lambda p: p.name,
             reverse=True,
         )

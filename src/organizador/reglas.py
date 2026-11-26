@@ -138,7 +138,9 @@ def ruta_reglas_usuario():
 def reglas_efectivas(ruta=None):
     """Reglas que se usaran, como tupla de Regla.
 
-    - Con `ruta`: solo se cargan las reglas de ese fichero.
+    - Con `ruta`: solo se cargan las reglas de ese fichero. La cadena vacia
+      no es un sinonimo de `None`: `Path("")` es el directorio actual, asi
+      que se rechaza como error de uso.
     - Sin `ruta`: se cargan las del usuario (si existen) y despues las del
       paquete (cacheadas). Si una asignatura esta en ambas, gana la del
       usuario.
@@ -146,6 +148,10 @@ def reglas_efectivas(ruta=None):
     Se llama una sola vez por accion (las acciones la reciben inyectada),
     asi que no conviene cachear aqui las reglas del usuario.
     """
+    if ruta is not None and not str(ruta).strip():
+        from .excepciones import ErrorDeUso
+
+        raise ErrorDeUso("--reglas no puede ser vacio.")
     if ruta is not None:
         return cargar_reglas(ruta)
 

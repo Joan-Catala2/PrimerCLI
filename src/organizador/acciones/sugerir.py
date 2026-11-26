@@ -6,13 +6,13 @@ toque ningún archivo. Si la IA no está disponible, la accion avisa y usa las
 reglas locales; el resto de comandos no depende de la IA.
 """
 
-from pathlib import Path
-
+from ..escaneo import hijos
 from ..excepciones import ErrorDeUso, IAIndisponible
 from ..organizador import mover_archivo
 from ..proveedor import ProveedorHeuristico, ProveedorIA
 from ..reglas import REVISION
 from .base import Accion
+from .util import ruta_de
 
 
 class AccionSugerir(Accion):
@@ -50,7 +50,7 @@ class AccionSugerir(Accion):
             )
         return cls(
             consola=consola,
-            salida=Path(args.salida).resolve(),
+            salida=ruta_de(args.salida, "--salida"),
             reglas=reglas_efectivas(args.reglas),
             proveedor=ProveedorIA.desde_env(),
             registro=Registro.desde_config(args),
@@ -63,7 +63,7 @@ class AccionSugerir(Accion):
         if not carpeta.is_dir():
             return self._sin_carpeta(carpeta)
 
-        archivos = sorted(p for p in carpeta.iterdir() if p.is_file())
+        archivos = [p for p in hijos(carpeta) if p.is_file()]
         if not archivos:
             return self._vacio(carpeta)
 

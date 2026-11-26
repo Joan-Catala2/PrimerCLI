@@ -79,11 +79,15 @@ def _pasa_filtros(archivo, origen, extensiones, excluir, desde):
 
 
 def _listar_archivos(origen, recursivo):
-    if recursivo:
-        candidatos = origen.rglob("*")
-    else:
-        candidatos = origen.iterdir()
-    return sorted(ruta for ruta in candidatos if ruta.is_file())
+    """(archivos, subcarpetas ilegibles) del origen, via `escaneo`.
+
+    Delgado envoltorio sobre `archivos_y_ilegibles`: existe para que el
+    motor tenga un unico punto de escaneo y para conservar los tests que
+    lo ejercitan directamente.
+    """
+    from .escaneo import archivos_y_ilegibles
+
+    return archivos_y_ilegibles(origen, recursivo)
 
 
 def _destino_disponible(destino):
@@ -114,8 +118,10 @@ def limpiar_vacias(base):
     if not base.is_dir():
         return
 
+    from .escaneo import arbol
+
     carpetas = sorted(
-        (ruta for ruta in base.rglob("*") if ruta.is_dir()),
+        (ruta for ruta in arbol(base) if ruta.is_dir()),
         key=lambda ruta: len(ruta.parts),
         reverse=True,
     )
@@ -215,7 +221,13 @@ def organizar(
     filtrados = 0
     total_vistos = 0
 
-    for archivo in _listar_archivos(origen, recursivo):
+    archivos, ilegibles = _listar_archivos(origen, recursivo)
+    avisos.extend(
+        "Aviso: subcarpeta ilegible, se omite: {}".format(carpeta)
+        for carpeta in ilegibles
+    )
+
+    for archivo in archivos:
         if _debe_ignorar(archivo):
             continue
         if recursivo and _en_carpeta_oculta(archivo, origen):

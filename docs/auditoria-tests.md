@@ -6,9 +6,9 @@ Resumen ejecutivo de la suite, mapa requisito → prueba → caso feo, sensibili
 
 | Métrica | Valor |
 |---|---|
-| Pruebas recopiladas | 278 (277 rapidas + 1 `lento`) |
-| Resultado | 278 passed, 0 failed, 0 skipped (rapidas: 277) |
-| Cobertura global | 93.18 % (2054 sentencias, 140 sin cubrir) |
+| Pruebas recopiladas | 294 (293 rapidas + 1 `lento`) |
+| Resultado | 294 passed, 0 failed, 0 skipped (rapidas: 293; 9 de `test_escaneo.py` se omiten en Windows/root, como declara su marca) |
+| Cobertura global | 93.37 % (2127 sentencias, 141 sin cubrir) |
 | Umbral CI | 85 % (`--cov-fail-under=85`) |
 | Archivos con cobertura completa | 10 de 26 (los 16 restantes tienen ≥1 línea) |
 | Tiempo local | ≈ 3.1 s en Python 3.10.12 (rapidas) |
@@ -81,6 +81,7 @@ La suite no necesita red, credenciales reales ni servicios externos (la auditor�
 | `proveedor/api.py` | 97 | 8 | 92 % | Validaciones defensivas de respuestas malformadas |
 | `proveedor/base.py` | 38 | 1 | 97 % | Método abstracto nunca instanciado |
 | `registro.py` | 75 | 9 | 88 % | Rutas relativas, logs corruptos y sobreescritura defensiva |
+| `escaneo.py` | 48 | 0 | 100 % | Escudo humano de `iterdir`/`rglob`: raiz ilegible = `ErrorDeSistema`; subcarpeta ilegible = aviso con `--recursivo`. Regresiones POSIX en `test_escaneo.py` (skip honesto en Windows/root).
 | `reglas.py` | 156 | 12 | 92 % | Validaciones defensivas de reglas |
 | **TOTAL** | **2054** | **140** | **93.18 %** | — |
 
@@ -194,7 +195,7 @@ Durante la auditoría aparecieron mutaciones reales, no hipotéticas:
 
 ## 8. Limitaciones honestas
 
-- Cobertura 93.18 %, no 100 %. Quedan ramas mayormente defensivas en `registro.py`, `organizador.py`, `acciones/aplicar.py` y `proveedor/api.py`.
+- Cobertura 93.37 %, no 100 %. Quedan ramas mayormente defensivas en `registro.py`, `organizador.py`, `acciones/aplicar.py` y `proveedor/api.py`.
 - No hay mutation testing automatizado; §5 documenta pruebas sensibles a mutaciones concretas, no una puntuación de mutantes.
 - No se prueba contra proveedores de IA reales: sería pago, no determinista y contradictorio con las restricciones del proyecto.
 - `--contenido` no hace OCR: un PDF escaneado (sin capa de texto) no clasifica y sigue a `_revision`. Los PDFs de prueba se generan con el propio `pypdf` (`tests/pdfs.py`) y los DOCX con `python-docx` (`tests/documentos.py`): se prueba el contrato lector/clasificador, no la fidelidad de `extract_text` de `pypdf` (que es del proveedor).
@@ -203,7 +204,7 @@ Durante la auditoría aparecieron mutaciones reales, no hipotéticas:
 - Los mensajes exactos en humano están cubiertos por fragmentos (`in`), no por comparación byte a byte; la intención es detectar pérdida de información, no congelar redacción.
 - Las subprocess e2e dependen de `python -m organizador`, que es precisamente la forma instalable que se quiere auditar; por eso se aceptan ~0.3 s por prueba.
 - El README y `RELEASES.md` se auditan con el contrato `tests/test_docs_readme.py`: ocho comandos documentados y sin banderas inventadas. La cronología va de `v1.0` (entrega final, seis comandos, paquete 2.4.0) a
-`v1.4.1` (parche de cierre, paquete 2.7.1, tras la `v1.4` de DOCX): cada mejora dentro de la misma línea
+`v1.4.2` (endurecimiento de escaneo y banderas de ruta, paquete 2.7.2): cada mejora dentro de la misma línea
 `2.x` del paquete, sin servicios de pago.
 
 ## 9. Veredicto

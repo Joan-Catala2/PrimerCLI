@@ -61,7 +61,11 @@ Jerarquia en `excepciones.py`: todo previsible es `OrganizadorError` con
 `codigo_salida` (1 error, 2 mal uso — `AccionNoValida/ErrorDeUso:25`, y el
 especial 130 por cancelacion en `revisar`). `cli.py:main` (352-373) captura
 `OrganizadorError` e imprime solo el mensaje humano: sin traceback, sin
-`sys.exit()` salvaje, codigo coherente. Un bug real si saca traceback
+`sys.exit()` salvaje, codigo coherente. Desde el cierre hay un caso mas de error previsible con clase propia: `ErrorDeSistema`
+(`excepciones.py`), que `escaneo.py` lanza cuando una carpeta no se puede leer
+(origen, `_revision`, logs...): antes salia como `PermissionError` con traceback; ahora
+es `Error:` humano con codigo 1, y con `--recursivo` una subcarpeta ilegible solo
+produce un aviso y la pasada continua (`tests/test_escaneo.py`). Un bug real si saca traceback
 (deliberado: eso es un defecto, no un caso de usuario)(`revisar`). Prueba: `test_cli.py` (rc 2 con accio inventada), y el e2e
 `test_cli_instalado_error_json_tiene_codigo_y_objeto_valido`: `main` recibe
 `argv=None` y `_detectar_json` (340-351) lee `sys.argv[1:]` — la causa del
@@ -157,8 +161,8 @@ unico destructor reversible de la CLI.
 - "Por que no publicais en PyPI?" — Decision de alcance: artefactos en
   GitHub Releases (instalables con `pip install <whl>`), sin cuentas ni
   servicios. Si algun dia, el job `build` ya esta hecho.
-- "Cuantas lineas de test hay y que no cubren?" — 277 rapidas + 1 lenta,
-  93 %. No cubren: defensas de IO imposibles de disparar sin root, la
+- "Cuantas lineas de test hay y que no cubren?" — 293 rapidas + 1 lenta,
+  93.37 %. No cubren: defensas de IO imposibles de disparar sin root, la
   fidelidad de `extract_text` de `pypdf` y la instalacion aislada del extra
   `[docx]` en el sdist (su `lxml` no se puede prestar sin red). Limite
   honesto: auditoria §8 y ADR-007.

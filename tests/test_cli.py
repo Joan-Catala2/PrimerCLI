@@ -1022,3 +1022,26 @@ def test_cli_revisar_salir(tmp_path, monkeypatch, capsys):
     assert codigo == 0
     assert (revision / "raro.pdf").exists()
     assert "Sesión terminada" in capsys.readouterr().out
+
+
+@pytest.mark.parametrize(
+    "argv",
+    [
+        ["ejecutar", "--salida", "", "origen"],
+        ["ejecutar", "--log", "", "origen"],
+        ["ejecutar", "--logs-dir", "", "origen"],
+        ["revisar", "--salida", ""],
+        ["verificar", "--salida", ""],
+        ["reglas", "--reglas", ""],
+        ["deshacer", "--logs-dir", ""],
+    ],
+)
+def test_rutas_vacias_son_error_de_uso_no_el_directorio_actual(argv, capsys):
+    """Una bandera de ruta vacia jamas debe significar "el cwd".
+
+    Sin candado, `--salida ""` se convertia en `Path("")` = `.` y la CLI
+    movia archivos al directorio actual sin que nadie lo pidiera. La fabrica
+    los rechaza con codigo 2 y mensaje que nombra la bandera.
+    """
+    assert cli.main(argv) == 2
+    assert "no puede ser vacio" in capsys.readouterr().err

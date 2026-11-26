@@ -15,6 +15,7 @@ from ..excepciones import ErrorDeUso, IAIndisponible
 from ..proveedor import Explicacion, ProveedorIA
 from ..reglas import REVISION, explicar_match
 from .base import Accion
+from .util import ruta_de
 
 
 class AccionExplicar(Accion):
@@ -53,7 +54,7 @@ class AccionExplicar(Accion):
         return cls(
             consola=consola,
             archivo=Path(nombre).name,
-            salida=Path(args.salida).resolve(),
+            salida=ruta_de(args.salida, "--salida"),
             reglas=reglas_efectivas(args.reglas),
             proveedor=ProveedorIA.desde_env(),
             extractor=extractor,

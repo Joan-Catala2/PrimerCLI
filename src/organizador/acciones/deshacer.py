@@ -16,6 +16,7 @@ from pathlib import Path
 from ..excepciones import ConfigError
 from ..organizador import _destino_disponible, deshacer
 from .base import Accion
+from .util import ruta_no_vacia
 
 
 def _restaurar_papelera(datos, registro, simular=False):
@@ -118,7 +119,7 @@ class AccionDeshacer(Accion):
             ultimos=args.ultimos,
             simular=args.simular,
             listar=args.listar,
-            log=args.log,
+            log=ruta_no_vacia(args.log, "--log"),
         )
 
     def ejecutar(self):

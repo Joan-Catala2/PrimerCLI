@@ -186,7 +186,12 @@ coherente (`1` para errores generales, `2` para errores de uso como
 `--desde ayer` o `--ultimos 0`). En modo `--json`, el error se emite como un
 objeto JSON válido (`{"ok": false, "error": "ConfigError", "mensaje": ...}`)
 para que un script nunca reciba texto plano donde espera JSON. Un *traceback*
-solo debe aparecer ante bugs reales.
+solo debe aparecer ante bugs reales. Una carpeta a la que no se puede entrar
+(un origen `chmod 000`, `_revision` sin permisos, el historial de logs) es
+`ErrorDeSistema`, no traceback; con `--recursivo` una subcarpeta ilegible
+solo produce un aviso y la pasada continúa con lo legible. Las banderas de
+ruta (`--salida`, `--reglas`, `--log`, `--logs-dir`) rechazan la cadena
+vacía: una ruta vacía jamás significa «el directorio actual».
 
 La jerarquía vive en `src/organizador/excepciones.py`:
 
@@ -375,3 +380,6 @@ límites conocidos de la suite. Para defenderlo en vivo: `docs/guion-defensa.md`
 - Sin `--contenido` el criterio es solo el nombre del archivo.
 - No hay interfaz gráfica.
 - Sin `--recursivo` solo procesa los archivos del primer nivel.
+- Con `--recursivo`, las subcarpetas sin permiso de lectura se omiten con un
+  aviso; el origen ilegible sí es error. La matriz Windows no ejercita ese
+  camino (`chmod 000` no niega lectura ahí): la marca de SO lo declara.
