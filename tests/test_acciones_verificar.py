@@ -183,7 +183,7 @@ def test_podar_conserva_primera_y_va_a_papelera(tmp_path, capsys):
 def test_despues_de_podar_reaudita_y_deja_cero_duplicados(tmp_path, capsys):
     _salida(tmp_path, "FOL/a.pdf", "FOL/b.pdf", "FOL/c.pdf")
     assert _ejecutar(tmp_path, "--podar", "--confirmar") == 1
-    assert "Duplicados:         0" in capsys.readouterr().out
+    assert "Duplicados:           0" in capsys.readouterr().out
     assert _ejecutar(tmp_path, "--json") == 0
 
 

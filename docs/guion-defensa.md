@@ -130,7 +130,7 @@ inyectan esa unica funcion. Y `explicar --contenido` lo dice honesto:
 
 README: `pip install .` (o `.[pdf]`, `.[docx]`, `.[pdf,docx]`), y
 `PYTHONPATH=src python -m organizador` sin instalar. Releases etiquetadas
-`v1.0`..`v1.4` con CHANGELOG, GitHub Releases con sdist+wheel construidos
+`v1.0`..`v1.4.1` con CHANGELOG, GitHub Releases con sdist+wheel construidos
 por CI (no PyPI:
 sin servicios externos, artefactos verificables). CI: matriz Ubuntu
 3.10-3.13 + Windows 3.12/3.13, ruff, mypy (src+tests), secretos, build
@@ -163,7 +163,7 @@ unico destructor reversible de la CLI.
   `[docx]` en el sdist (su `lxml` no se puede prestar sin red). Limite
   honesto: auditoria §8 y ADR-007.
 - "El proyecto es tuyo?" — Todo el codigo y su justificacion (7 ADRs) en el
-  historial con PRs #1-#20; las decisiones importantes estan razonadas en
+  historial con PRs #1-#21; las decisiones importantes estan razonadas en
   docs, no magicas.
 
 ## Como ensayar

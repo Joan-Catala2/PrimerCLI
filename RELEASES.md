@@ -5,13 +5,48 @@ entrega final del proyecto; la etiqueta `v1.1` es la **versión definitiva**;
 la etiqueta `v1.2` añade la fase 8 (clasificación opcional por el texto de
 los PDF); la etiqueta `v1.3` publica la fase 9 (documentación de extensión
 y superficie pública de emparejamiento); la `v1.3.1` audita el sdist; la
-`v1.4` añade la fase 11 (DOCX opcional con la misma bandera). El número
-interno del paquete conserva la cronología `2.x`
-(`organizador --version` muestra `2.7.0`).
+`v1.4` añade la fase 11 (DOCX opcional con la misma bandera) y la `v1.4.1`
+es el parche de cierre (quickstart, resumen alineado y auditoría lenta
+portable). El número interno del paquete conserva la cronología `2.x`
+(`organizador --version` muestra `2.7.1`).
 
 El detalle línea a línea de cada versión vive en
 [docs/CHANGELOG.md](docs/CHANGELOG.md). Esta página resume las entregas y sus
 verificaciones.
+
+## v1.4.1 — parche de cierre: quickstart, resumen alineado y auditoría portable
+
+- **Fecha**: 2026-11-26
+- **Tag**: `v1.4.1`
+- **Base técnica**: PR #21; el tag apunta al commit de release con esta
+  documentación cerrada.
+- **Paquete**: `organizador` 2.7.1
+- **Python**: 3.8+ (CI verificada en Ubuntu 3.10–3.13 y Windows 3.12/3.13)
+
+Parche sin funciones nuevas. Tres retoques de presentación y una corrección
+de la propia auditoría:
+
+- **Quickstart** "Primeros 5 minutos" al principio del README, con la
+  salida real de la CLI (simular → ejecutar → deshacer).
+- El bloque `Resumen` alinea los valores en columna de 22: la clave más
+  larga (`Archivos procesados:`) ya no quedaba pegada al número. Solo
+  presentación humana; el JSON no se toca.
+- La auditoría lenta del sdist instalaba `pypdf` "vacío" en Python < 3.11:
+  la rueda local se reempaquetaba sin `Requires-Dist` y faltaba
+  `typing_extensions`. Ahora conserva el metadata y calcula la closure de
+  dependencias con marcadores, siempre sin red. Se reproduce en 3.10.
+
+### Verificación (commit de release)
+
+| Comprobación | Resultado |
+|---|---|
+| `ruff check .` / `ruff format --check .` | limpio |
+| `mypy src` / `mypy tests` | limpio |
+| `pytest -m "not lento" --cov=organizador --cov-fail-under=85` | 277 passed, 93.18 % |
+| `pytest tests/test_paquete.py -m lento` | 1 passed (sdist en venv real, `[pdf]`, Python 3.10) |
+| `git ls-files -z \| xargs -0 python scripts/check_secretos.py` | limpio |
+| CI en `main` post-fusión | verde (matriz completa) |
+| Auditoría detallada | `docs/auditoria-tests.md` |
 
 ## v1.4 — fase 11: DOCX opcional (mejora menor)
 
@@ -286,6 +321,9 @@ secretos y la auditoría de pruebas.
 
 | Versión | Hito | Commits/PRs relevantes |
 |---|---|---|
+| 2.7.1 | Parche de cierre: quickstart, resumen alineado y auditoría lenta portable | tag `v1.4.1` |
+| 2.7.0 | Fase 11: DOCX opcional con `--contenido` | `45291d2`, PR #20, tag `v1.4` |
+| 2.6.2 | Fase 10: auditoría del sdist publicado (venv real, sin red) | PR #19, tag `v1.3.1` |
 | 2.6.1 | Fase 9: guía de extensión y superficie pública de emparejamiento | `d98482e`, PR #15, PR #16, tag `v1.3` |
 | 2.6.0 | Fase 8: clasificación opcional por el texto de los PDF (`--contenido`) | `b477527`, PR #13, tag `v1.2` |
 | 2.5.0 | Versión definitiva: `aplicar` + `verificar` + CI multi-SO, badge y build | PR #8, PR #9, PR #10, tag `v1.1` |
