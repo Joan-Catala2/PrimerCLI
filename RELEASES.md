@@ -346,6 +346,10 @@ reglas externas, IA opcional con fallback y control de secretos.
 
 ## v1.0 — entrega final
 
+- **GitHub Release**: creada el 2026-11-26 con sdist+wheel **reconstruidos
+  del tag** (`python -m build` + smoke de la wheel en venv limpio: `--version`
+  2.4.0 y flujo `--simular`); el job `build` de CI con artefactos por release
+  no existia aun en la v1.0 (llego en la v1.4).
 - **Fecha**: 2026-11-18
 - **Tag**: `v1.0`
 - **Base técnica**: `f0b9305` (código y auditoría previos a esta nota); el tag
