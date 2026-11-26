@@ -60,7 +60,7 @@ Para ver la prueba lenta:
 pytest tests -q --durations=5
 ```
 
-La suite no necesita red, credenciales reales ni servicios externos (la auditoría del sdist instala de `--no-index`, con el `pypdf` copiado como rueda local). `urlopen` se sustituye por un doble en `tests/test_proveedor.py`; la clave de prueba es `clave-de-prueba-no-real`.
+La suite no necesita red, credenciales reales ni servicios externos (la auditoría del sdist instala de `--no-index`, con `pypdf` (y su closure de runtime, p. ej. `typing_extensions` en Python < 3.11) copiado como ruedas locales conservando el `Requires-Dist` real). `urlopen` se sustituye por un doble en `tests/test_proveedor.py`; la clave de prueba es `clave-de-prueba-no-real`.
 
 ## 3. Cobertura por módulo
 
@@ -203,7 +203,7 @@ Durante la auditoría aparecieron mutaciones reales, no hipotéticas:
 - Los mensajes exactos en humano están cubiertos por fragmentos (`in`), no por comparación byte a byte; la intención es detectar pérdida de información, no congelar redacción.
 - Las subprocess e2e dependen de `python -m organizador`, que es precisamente la forma instalable que se quiere auditar; por eso se aceptan ~0.3 s por prueba.
 - El README y `RELEASES.md` se auditan con el contrato `tests/test_docs_readme.py`: ocho comandos documentados y sin banderas inventadas. La cronología va de `v1.0` (entrega final, seis comandos, paquete 2.4.0) a
-`v1.4` (DOCX opcional, paquete 2.7.0): cada mejora dentro de la misma línea
+`v1.4.1` (parche de cierre, paquete 2.7.1, tras la `v1.4` de DOCX): cada mejora dentro de la misma línea
 `2.x` del paquete, sin servicios de pago.
 
 ## 9. Veredicto

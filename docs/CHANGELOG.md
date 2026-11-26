@@ -8,8 +8,36 @@ la etiqueta `v1.1` es la versión definitiva con fase 7 publicada (paquete
 `2.5.0`); la etiqueta `v1.2` añade la fase 8 (PDFs por contenido, paquete
 `2.6.0`); la etiqueta `v1.3` publica la fase 9 (guía de extensión y
 superficie pública de emparejamiento, paquete `2.6.1`); la `v1.3.1` audita
-el sdist publicado (`2.6.2`); la `v1.4` añade DOCX opcional (`2.7.0`, el
-que muestra `organizador --version`).
+el sdist publicado (`2.6.2`); la `v1.4` añade DOCX opcional (`2.7.0`); la
+`v1.4.1` es el parche de cierre (`2.7.1`, el que muestra `organizador
+--version`).
+
+## [2.7.1] — 2026-11-26 (etiqueta git `v1.4.1`, cierre del curso)
+
+### Añadido
+
+- Quickstart **"Primeros 5 minutos"** al principio del README: instalación,
+  cuatro archivos de ejemplo, `--simular` y el ciclo completo
+  ejecutar → deshacer con la **salida real** de la CLI (no un bloque
+  inventado). Es lo primero que ve quien evalúa.
+
+### Cambiado
+
+- El bloque `Resumen` de la salida humana alinea los valores en columna de
+  22: la clave más larga (`Archivos procesados:`) ya no queda pegada al
+  número. Cero cambios de comportamiento: solo presentación, el JSON no se
+  toca y `test_despues_de_podar_reaudita_y_deja_cero_duplicados` fija el
+  nuevo espaciado.
+
+### Corregido
+
+- La auditoría lenta del sdist (`tests/test_paquete.py`) instalaba `pypdf`
+  "vacío": la rueda local mínima se reempaquetaba sin `Requires-Dist` y en
+  Python < 3.11 faltaba `typing_extensions` (pypdf 7 lo importa). Ahora la
+  rueda conserva el metadata real del proveedor y la closure de
+  dependencias de runtime se calcula con marcadores evaluados
+  (`packaging.markers`) — mismo contrato sin red: todo viaja como rueda
+  local. Se reproduce en Python 3.10 (antes solo pasaba en ≥ 3.11).
 
 ## [2.7.0] — 2026-11-27 (etiqueta git `v1.4`, fase 11)
 

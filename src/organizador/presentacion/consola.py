@@ -111,9 +111,9 @@ class Consola:
         print()
         print("Resumen")
         for clave, valor in lineas:
-            # Las claves de 20+ caracteres (p.ej. "Archivos procesados:")
-            # quedan pegadas al valor: era el mismo alineado en la v2.2.
-            print("  {:<20}{}".format(clave + ":", valor))
+            # Clave+ ":" hasta 22: la mas larga ("Archivos procesados:",
+            # 20) conserva un hueco y el bloque de valores queda alineado.
+            print("  {:<22}{}".format(clave + ":", valor))
 
     def linea(self, mensaje=""):
         """Mensaje humano directo a stdout (cabeceras, avisos de sesion).

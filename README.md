@@ -22,6 +22,42 @@ Organizado/
 └── _revision/          # lo que no se pudo clasificar
 ```
 
+## Primeros 5 minutos
+
+```bash
+pip install .                 # o sin instalar: PYTHONPATH=src python -m organizador
+mkdir -p descargas && cd descargas
+touch "trabajosql.pdf" "apuntes java uniones.pdf" "DAM2_examen redes.pdf" "recado-compra.txt"
+cd ..
+
+organizador ejecutar descargas --simular
+```
+
+```
+[SIM] DAM2_examen redes.pdf -> SistemasInformaticos/Redes/DAM2_examen redes.pdf
+[SIM] apuntes java uniones.pdf -> Programacion/Java/apuntes java uniones.pdf
+[?] recado-compra.txt -> _revision/recado-compra.txt
+[SIM] trabajosql.pdf -> BaseDeDatos/SQL/trabajosql.pdf
+
+Resumen
+  Archivos procesados:  4
+  Organizados:          3
+  A revisar:            1
+  Errores:              0
+  Filtrados:            0
+  Destino:              /ruta/desde/donde/estés/Organizado
+  Modo:                 simulación (no se ha movido nada)
+```
+
+`--simular` no toca el disco: `[SIM]` es lo que se movería y `[?]` lo que
+iría a `_revision`. Quita la bandera y el mismo comando organiza de verdad;
+cada ejecución deja un log con el que se puede volver atrás:
+
+```bash
+organizador ejecutar descargas
+organizador deshacer --simular   # previsualiza la reversión; sin --simular, revierte
+```
+
 ## Requisitos
 
 - Python 3.8+
@@ -191,12 +227,12 @@ Salida:
 [?] apuntes_scan_03.pdf -> _revision/
 
 Resumen
-  Archivos procesados: 3
-  Organizados:         2
-  A revisar:           1
-  Errores:             0
-  Filtrados:           0
-  Destino:             /ruta/al/proyecto/Organizado
+  Archivos procesados:  3
+  Organizados:          2
+  A revisar:            1
+  Errores:              0
+  Filtrados:            0
+  Destino:              /ruta/al/proyecto/Organizado
 ```
 
 ## Arquitectura

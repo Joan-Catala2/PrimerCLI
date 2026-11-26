@@ -101,43 +101,73 @@ def _sin_pypdf(python: Path, env: dict) -> bool:
 
 
 def _find_links_pypdf(tmp_path: Path):
-    """Rueda local de `pypdf` (copiada del entorno) para instalar sin red.
+    """Ruedas locales de `pypdf` y sus dependencias para instalar sin red.
 
     El venv se instala con `--no-index`: la unica fuente de `pypdf` es el
     `PYTHONPATH` que le presta el entorno de tests. `importlib.metadata`
-    localiza la distribucion; se reempaqueta como wheel minima en un
-    directorio temporal y se instala con `--find-links`. Sin tocar el site
-    real del usuario y sin red.
+    localiza la distribucion; se reempaqueta como wheel minima (con sus
+    `Requires-Dist` originales: sin metadata, pip instalaria pypdf hueco y
+    `typing_extensions` faltararia en Python < 3.11) y lo mismo se hace con
+    las dependencias de runtime que el marcador pida, en closure. Sin tocar
+    el site real del usuario y sin red.
     """
     import importlib.metadata as md
     import zipfile
 
-    try:
-        distribucion = md.distribution("pypdf")
-    except md.PackageNotFoundError:
-        return None
-    raiz = Path(str(distribucion.locate_file("pypdf")))
-    if not raiz.is_dir():
-        return None
-    version = distribucion.version
+    from packaging.markers import Marker
+
     destino = tmp_path / "find-links"
     destino.mkdir()
-    rueda = destino / "pypdf-{}-py3-none-any.whl".format(version)
-    # copiamos el paquete al staging: el wheel se arma desde ahi (los
-    # archivos originales pueden estar en un site no escribible)
-    staged = tmp_path / "staging" / "pypdf"
-    shutil.copytree(raiz, staged)
-    with zipfile.ZipFile(rueda, "w") as archivo:
-        for ruta in staged.rglob("*"):
-            if ruta.is_file():
-                archivo.write(ruta, str(ruta.relative_to(staged.parent)))
-        info = "pypdf-{}.dist-info".format(version)
-        archivo.writestr(
-            info + "/METADATA",
-            "Metadata-Version: 2.1\nName: pypdf\nVersion: {}\n".format(version),
-        )
-        archivo.writestr(info + "/WHEEL", "Wheel-Version: 1.0\nGenerator: tests\n")
-        archivo.writestr(info + "/RECORD", "")
+    pendientes, vistas = ["pypdf"], set()
+    while pendientes:
+        nombre = pendientes.pop()
+        if nombre.lower() in vistas:
+            continue
+        vistas.add(nombre.lower())
+        try:
+            distribucion = md.distribution(nombre)
+        except md.PackageNotFoundError:
+            return None
+        raiz = Path(str(distribucion.locate_file(nombre.replace("-", "_"))))
+        version = distribucion.version
+        rueda = destino / "{}-{}-py3-none-any.whl".format(nombre, version)
+        # copiamos al staging: el wheel se arma desde ahi (los archivos
+        # originales pueden estar en un site no escribible); los paquetes de
+        # un solo modulo (typing_extensions) van sueltos en la raiz del zip
+        staged = tmp_path / "staging" / nombre
+        if raiz.is_dir():
+            shutil.copytree(raiz, staged)
+            contenido = [
+                (ruta, str(ruta.relative_to(staged.parent)))
+                for ruta in staged.rglob("*")
+                if ruta.is_file()
+            ]
+        elif raiz.with_suffix(".py").is_file():
+            modulo = raiz.with_suffix(".py")
+            contenido = [(modulo, modulo.name)]
+        else:
+            return None
+        lineas = [
+            "Metadata-Version: 2.1",
+            "Name: {}".format(nombre),
+            "Version: {}".format(version),
+        ]
+        with zipfile.ZipFile(rueda, "w") as archivo:
+            for ruta, nombre_zip in contenido:
+                archivo.write(ruta, nombre_zip)
+            info = "{}-{}.dist-info".format(nombre, version)
+            requires = distribucion.metadata.get_all("Requires-Dist") or []
+            for requiere in requires:
+                linea, _, marcador = requiere.partition(";")
+                if "extra ==" in marcador:
+                    continue
+                lineas.append("Requires-Dist: {}".format(requiere))
+                dependencia = linea.strip().split(" ")[0].split("<")[0].split(">")[0]
+                if dependencia and (not marcador or Marker(marcador).evaluate()):
+                    pendientes.append(dependencia)
+            archivo.writestr(info + "/METADATA", "\n".join(lineas) + "\n")
+            archivo.writestr(info + "/WHEEL", "Wheel-Version: 1.0\nGenerator: tests\n")
+            archivo.writestr(info + "/RECORD", "")
     return destino
 
 
@@ -194,8 +224,9 @@ def rueda(tmp_path_factory) -> Path:
     de tests (build + wheel + setuptools del dev extra), sin red.
     """
     try:
-        import build  # type: ignore[import-not-found]  # noqa: F401
         import wheel  # type: ignore[import-not-found,import-untyped]  # noqa: F401
+
+        import build  # type: ignore[import-not-found]  # noqa: F401
     except ImportError:
         pytest.skip("build/wheel no disponibles")
     salida = tmp_path_factory.mktemp("dist")
