@@ -9,8 +9,43 @@ la etiqueta `v1.1` es la versión definitiva con fase 7 publicada (paquete
 `2.6.0`); la etiqueta `v1.3` publica la fase 9 (guía de extensión y
 superficie pública de emparejamiento, paquete `2.6.1`); la `v1.3.1` audita
 el sdist publicado (`2.6.2`); la `v1.4` añade DOCX opcional (`2.7.0`); la
-`v1.4.1` es el parche de cierre (`2.7.1`, el que muestra `organizador
---version`).
+`v1.4.1` es el parche de cierre (`2.7.1`), la `v1.4.2` endurece escaneo y
+banderas de ruta (`2.7.2`) y la `v1.4.3` remata señales e historial
+(`2.7.3`, el que muestra `organizador --version`).
+
+## [2.7.3] — 2026-11-26 (etiqueta git `v1.4.3`, señales e historial)
+
+### Añadido
+
+- `Ctrl+C` (SIGINT) en cualquier prompt — `--confirmar`, `revisar
+  --interactivo`, `aplicar`, `verificar --podar` — sale con
+  `Cancelado por el usuario (Ctrl+C).` y **código 130**, el mismo que
+  `revisar` ya usaba para cancelación. Antes el paraguas no existía y el
+  `KeyboardInterrupt` salía como traceback, violando el contrato de
+  «traceback solo ante bugs reales». En `--json` stdout sigue virgen y el
+  prompt a medias se cierra con un salto de línea en stderr.
+- `tests/test_interrupcion.py`: 9 pruebas POSIX — paraguas con `input`
+  sustituido, SIGINT real por señal del SO sobre un subproceso con el
+  prompt abierto (sin PTY: la tubería de stdin se deja abierta para que
+  `input()` espere de verdad), y la poda con historial ilegible.
+- `tests/test_aplicar_fuzz.py`: 3 pruebas de alias hostiles en `aplicar`
+  (comilla simple, doble, 200 letras, emoji, ñ) — ida y vuelta completa
+  por `cargar_reglas` y clasificación posterior con las reglas recargadas.
+
+### Cambiado
+
+- La poda de `verificar` con el historial sin permisos de escritura
+  (`--logs-dir` 000) avisaba con un `PermissionError` en crudo desde el
+  `mkdir` de la papelera: ahora es `Aviso: no se pudo crear la papelera
+  ...` con el código de hallazgos ya decidido (1) y los duplicados
+  intactos. `--podar` requiere confirmación: el prompt solo aparece sin
+  `--confirmar` (los tests de Ctrl+C lo ejercitan por esa vía).
+
+### Nota D3
+
+- Fuzz de alias contra el código real: el round-trip JSON ya era robusto
+  (`ensure_ascii=False` escapa, el troceador no deja tokens con saltos de
+  línea o controles), así que `aplicar` no ganó código, solo pruebas.
 
 ## [2.7.2] — 2026-11-26 (etiqueta git `v1.4.2`, endurecimiento tras fuzzing)
 
