@@ -88,7 +88,12 @@ palabras.add_argument("nombre", nargs="+", help="nombres a contar")
 ## Los candados (esto no es opcional, y es gratis)
 
 La suite fuerza el registro correcto: si tu acción no está en la fábrica o
-no está documentada, los tests existentes revientan solos.
+no está documentada, los tests existentes revientan solos. Y la prueba
+`test_acciones.py::test_accion_nueva_se_despacha_sin_tocar_el_nucleo`
+demuestra lo contrario también: una acción nueva definida en el propio test,
+inyectada en una copia del diccionario, se construye y se ejecuta con la
+misma fábrica sin que motor, presentación ni excepciones cambien. Añadir =
+registrar, no modificar.
 
 | Candado | Qué exige de tu acción |
 |---|---|
