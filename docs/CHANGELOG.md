@@ -12,6 +12,32 @@ el sdist publicado (`2.6.2`); la `v1.4` añade DOCX opcional (`2.7.0`); la
 `v1.4.1` es el parche de cierre (`2.7.1`, el que muestra `organizador
 --version`).
 
+## [2.7.2] — 2026-11-26 (etiqueta git `v1.4.2`, endurecimiento tras fuzzing)
+
+### Añadido
+
+- Módulo `escaneo.py`: sustituye a `iterdir`/`rglob` en todos los sitios que
+  leen carpetas de usuario (motor, `revisar`, `sugerir`, `aplicar`,
+  `verificar`, `registro`, `limpiar_vacias`). Una carpeta ilegible
+  (`chmod 000`, permisos de red…) sale ahora como `ErrorDeSistema` humano
+  con código 1 — antes era un `PermissionError` con traceback en cuatro
+  comandos. Con `--recursivo`, una *subcarpeta* ilegible no aborta: se
+  anota como aviso y la pasada continúa con lo legible. `arbol()` replica
+  `rglob("*")` (symlinks sueltos, sin descender por enlaces a carpetas) y
+  blinda bucles con `realpath` visitado.
+- Candado de rutas vacías: `--salida ""`, `--reglas ""`, `--log ""`,
+  `--logs-dir ""` y `origen ""` devuelven `ErrorDeUso` (2) nombrando la
+  bandera. Antes `Path("")` era `.`: la CLI movía al directorio actual o
+  deshacía contra sus propios JSON sin que nadie lo pidiera.
+- `tests/test_escaneo.py` (9 pruebas POSIX con `skip` honesto en
+  Windows/root) y 7 parametrizadas en `test_cli.py`. Suite: 293 rápidas +
+  1 lenta, 93.37 %.
+
+### Cambiado
+
+- README «Errores previsibles» documenta el nuevo caso; auditoría y guion
+  actualizados con las cifras y el `archivo:linea` del escudo.
+
 ## [2.7.1] — 2026-11-26 (etiqueta git `v1.4.1`, cierre del curso)
 
 ### Añadido

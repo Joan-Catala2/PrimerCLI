@@ -10,12 +10,12 @@ se lee el PDF o DOCX y esa sugerencia sale entre parentesis para no
 confundirse con la deteccion por nombre.
 """
 
-from pathlib import Path
-
+from ..escaneo import hijos
 from ..excepciones import ErrorDeUso
 from ..organizador import limpiar_vacias, mover_archivo
 from ..reglas import REVISION, clasificar
 from .base import Accion
+from .util import ruta_de
 
 
 def mapa_temas(reglas):
@@ -66,7 +66,7 @@ class AccionRevisar(Accion):
 
         return cls(
             consola=consola,
-            salida=Path(args.salida).resolve(),
+            salida=ruta_de(args.salida, "--salida"),
             reglas=reglas_efectivas(args.reglas),
             interactivo=args.interactivo,
             extractor=extractor,
@@ -77,7 +77,7 @@ class AccionRevisar(Accion):
         if not carpeta.is_dir():
             return self._sin_carpeta(carpeta)
 
-        archivos = sorted(p for p in carpeta.iterdir() if p.is_file())
+        archivos = [p for p in hijos(carpeta) if p.is_file()]
         if not self.interactivo:
             return self._listar(carpeta, archivos)
         return self._interactivo(carpeta, archivos)

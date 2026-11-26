@@ -16,10 +16,12 @@ import re
 import shutil
 from pathlib import Path
 
+from ..escaneo import arbol, hijos
 from ..excepciones import CarpetaNoValidaError, ErrorDeUso
 from ..organizador import _destino_disponible
 from .aplicar import sugerir_alias
 from .base import Accion
+from .util import ruta_de
 
 TAM_BLOQUE = 65536
 PAPELERA = ".papelera"
@@ -87,7 +89,7 @@ class AccionVerificar(Accion):
         registro = Registro.desde_config(args)
         return cls(
             consola=consola,
-            salida=Path(args.salida).resolve(),
+            salida=ruta_de(args.salida, "--salida"),
             reglas=reglas_efectivas(args.reglas),
             proveedor=ProveedorIA.desde_env(),
             registro=registro,
@@ -102,7 +104,7 @@ class AccionVerificar(Accion):
         """Archivos de la salida, omitiendo ocultos, logs y papelera."""
         logs = self.registro.carpeta.resolve()
         archivos = []
-        for ruta in sorted(self.salida.rglob("*")):
+        for ruta in arbol(self.salida):
             if not ruta.is_file() or _es_ignorable(ruta.name):
                 continue
             if logs in ruta.parents or PAPELERA in ruta.parts:
@@ -135,9 +137,7 @@ class AccionVerificar(Accion):
 
     def _carpetas_vacias(self):
         return [
-            ruta
-            for ruta in sorted(self.salida.rglob("*"))
-            if ruta.is_dir() and not any(ruta.iterdir())
+            ruta for ruta in arbol(self.salida) if ruta.is_dir() and not hijos(ruta)
         ]
 
     def _fuera_catalogo(self):
@@ -146,7 +146,7 @@ class AccionVerificar(Accion):
         asignaturas = {regla.asignatura for regla in self.reglas}
         logs = self.registro.carpeta.resolve()
         fuera = []
-        for ruta in sorted(self.salida.iterdir()):
+        for ruta in hijos(self.salida):
             if not ruta.is_dir() or _es_ignorable(ruta.name):
                 continue
             if ruta.name == REVISION or ruta.name in asignaturas:
@@ -165,7 +165,7 @@ class AccionVerificar(Accion):
             raiz = self.salida / regla.asignatura
             if not raiz.is_dir():
                 continue
-            for archivo in sorted(p for p in raiz.iterdir() if p.is_file()):
+            for archivo in [p for p in hijos(raiz) if p.is_file()]:
                 resultado = clasificar(archivo.name, self.reglas)
                 if resultado and resultado[1]:
                     atrapados.append((archivo, resultado))
@@ -178,9 +178,7 @@ class AccionVerificar(Accion):
         if not carpeta.is_dir():
             return {"total": 0, "aplicar": 0, "sugerir": 0}
         nombres = [
-            p.name
-            for p in sorted(carpeta.iterdir())
-            if p.is_file() and not _es_ignorable(p.name)
+            p.name for p in hijos(carpeta) if p.is_file() and not _es_ignorable(p.name)
         ]
         propone_aplicar = sum(1 for n in nombres if sugerir_alias(n, self.reglas))
         try:
