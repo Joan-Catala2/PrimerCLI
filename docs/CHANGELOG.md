@@ -38,6 +38,10 @@ el sdist publicado (`2.6.2`); la `v1.4` añade DOCX opcional (`2.7.0`); la
   dependencias de runtime se calcula con marcadores evaluados
   (`packaging.markers`) — mismo contrato sin red: todo viaja como rueda
   local. Se reproduce en Python 3.10 (antes solo pasaba en ≥ 3.11).
+- Higiene de CI: el extra `dev` fija `ruff>=0.17.6,<0.18` (sin pin, dos
+  ejecuciones pedían órdenes de imports opuestos) y la comprobación de
+  disponibilidad `build/wheel` pasa a `importlib.util.find_spec`, sin
+  imports con comentarios que isort reordena distinto según la versión.
 
 ## [2.7.0] — 2026-11-27 (etiqueta git `v1.4`, fase 11)
 

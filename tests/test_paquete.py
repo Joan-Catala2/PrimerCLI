@@ -223,11 +223,9 @@ def rueda(tmp_path_factory) -> Path:
     `--no-isolation`: el build usa los paquetes YA instalados en el entorno
     de tests (build + wheel + setuptools del dev extra), sin red.
     """
-    try:
-        import wheel  # type: ignore[import-not-found,import-untyped]  # noqa: F401
+    import importlib.util
 
-        import build  # type: ignore[import-not-found]  # noqa: F401
-    except ImportError:
+    if not (importlib.util.find_spec("build") and importlib.util.find_spec("wheel")):
         pytest.skip("build/wheel no disponibles")
     salida = tmp_path_factory.mktemp("dist")
     construido = subprocess.run(

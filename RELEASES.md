@@ -35,6 +35,9 @@ de la propia auditoría:
   la rueda local se reempaquetaba sin `Requires-Dist` y faltaba
   `typing_extensions`. Ahora conserva el metadata y calcula la closure de
   dependencias con marcadores, siempre sin red. Se reproduce en 3.10.
+- Higiene: el extra `dev` fija `ruff>=0.17.6,<0.18` y la comprobación de
+  `build/wheel` usa `find_spec` (sin imports con `type: ignore` que isort
+  ordenaba distinto según la versión de ruff).
 
 ### Verificación (commit de release)
 
