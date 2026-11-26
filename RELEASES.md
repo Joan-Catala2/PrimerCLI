@@ -7,12 +7,54 @@ los PDF); la etiqueta `v1.3` publica la fase 9 (documentación de extensión
 y superficie pública de emparejamiento); la `v1.3.1` audita el sdist; la
 `v1.4` añade la fase 11 (DOCX opcional con la misma bandera) y la `v1.4.1`
 es el parche de cierre (quickstart, resumen alineado y auditoría lenta
-portable). El número interno del paquete conserva la cronología `2.x`
-(`organizador --version` muestra `2.7.2`).
+portable); la `v1.4.2` endurece el acceso a disco tras una batería de
+pruebas de robustez (sin tracebacks por permisos ni rutas vacías) y la
+`v1.4.3` remata señales e historial (Ctrl+C con código 130, poda sin
+permisos, fuzz de alias). El número interno del paquete conserva la cronología `2.x`
+(`organizador --version` muestra `2.7.3`).
 
 El detalle línea a línea de cada versión vive en
 [docs/CHANGELOG.md](docs/CHANGELOG.md). Esta página resume las entregas y sus
 verificaciones.
+
+## v1.4.3 — Señales e historial: Ctrl+C humano y poda sin permisos
+
+- **Fecha**: 2026-11-26
+- **Tag**: `v1.4.3`
+- **Base técnica**: PR #23; el tag apunta al commit de release con esta
+  documentación cerrada.
+- **Paquete**: `organizador` 2.7.3
+- **Python**: 3.8+ (CI verificada en Ubuntu 3.10–3.13 y Windows 3.12/3.13)
+
+Segunda pasada de robustez, dirigida a lo que la primera no tocó: señales
+del usuario y escritura del historial. Cero funciones nuevas:
+
+- **Ctrl+C con código 130, sin traceback.** `KeyboardInterrupt` no estaba
+  cubierto por la jerarquía de excepciones y escapaba de `main` en cualquier
+  prompt (`--confirmar`, `revisar --interactivo`, `aplicar`,
+  `verificar --podar`). Paraguas en `cli.py:main`: mensaje corto, 130 (el
+  mismo que `revisar` ya usaba), stdout intacto en `--json` y prompt a medias
+  cerrado con newline en stderr. Probado por dos vías: `input` sustituido e
+  **SIGINT real** enviado a un subproceso con el prompt abierto.
+- **Poda con historial ilegible.** `verificar --podar` sobre un
+  `--logs-dir` `chmod 000` reventaba en el `mkdir` de la papelera con
+  `PermissionError` en crudo; ahora avisa, no toca los duplicados y mantiene
+  el código de hallazgos.
+- **Fuzz de alias en `aplicar`** (comilla, doble comilla, 200 letras, emoji,
+  ñ): el round-trip por `cargar_reglas` ya era robusto; no hubo que tocar
+  código, quedó fijado con 3 pruebas.
+
+### Verificación (commit de release)
+
+| Comprobación | Resultado |
+|---|---|
+| `ruff check .` / `ruff format --check .` | limpio |
+| `mypy src` / `mypy tests` | limpio |
+| `pytest -m "not lento" --cov=organizador --cov-fail-under=85` | 305 passed, 93.45 % |
+| `pytest tests/test_paquete.py -m lento` | 1 passed (sdist en venv real, `[pdf]`, Python 3.10) |
+| `git ls-files -z \| xargs -0 python scripts/check_secretos.py` | limpio |
+| CI en `main` post-fusión | verde (matriz completa) |
+| Auditoría detallada | `docs/auditoria-tests.md` |
 
 ## v1.4.2 — endurecimiento del escaneo y de las banderas de ruta
 
@@ -370,6 +412,7 @@ secretos y la auditoría de pruebas.
 
 | Versión | Hito | Commits/PRs relevantes |
 |---|---|---|
+| 2.7.3 | Señales e historial: Ctrl+C=130 sin traceback, poda sin permisos, fuzz de alias | tag `v1.4.3` |
 | 2.7.2 | Endurecimiento: sin tracebacks por permisos y rutas vacías (`escaneo.py`) | tag `v1.4.2` |
 | 2.7.1 | Parche de cierre: quickstart, resumen alineado y auditoría lenta portable | tag `v1.4.1` |
 | 2.7.0 | Fase 11: DOCX opcional con `--contenido` | `45291d2`, PR #20, tag `v1.4` |

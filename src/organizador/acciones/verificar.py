@@ -239,7 +239,18 @@ class AccionVerificar(Accion):
                 return [], []
 
         papelera = self.registro.carpeta / PAPELERA
-        papelera.mkdir(parents=True, exist_ok=True)
+        try:
+            papelera.mkdir(parents=True, exist_ok=True)
+        except OSError as error:
+            # Un historial sin permisos no es motivo para sacar un traceback
+            # (era `PermissionError` en crudo): la poda no puede hacerse, se
+            # avisa, y el codigo de hallazgos ya estaba decidido antes.
+            self.consola.aviso(
+                "Aviso: no se pudo crear la papelera en el historial ({}): {}".format(
+                    self.registro.carpeta, error
+                )
+            )
+            return [], []
         podados = []
         errores = []
         movimientos = []

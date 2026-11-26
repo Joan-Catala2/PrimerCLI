@@ -356,8 +356,11 @@ def main(argv=None):
     inexistente...) se imprimen como mensaje humano, sin traceback, y
     devuelven el codigo de salida de cada error. En modo `--json` el error
     se emite como un objeto JSON valido (`ok: false`) para que un script
-    nunca reciba texto plano donde espera JSON. El resto de excepciones no
-    capturadas se dejan pasar: un traceback ante un bug real es intencionado.
+    nunca reciba texto plano donde espera JSON. Un `KeyboardInterrupt`
+    (Ctrl+C en cualquier prompt) se responde con 130, el mismo codigo con
+    el que `revisar --interactivo` ya declara la cancelacion. El resto de
+    excepciones no capturadas se dejan pasar: un traceback ante un bug real
+    es intencionado.
     """
     try:
         args = _construir_parser().parse_args(argv)
@@ -371,6 +374,16 @@ def main(argv=None):
         else:
             Consola().error_humano(error)
         return error.codigo_salida
+    except KeyboardInterrupt:
+        if _detectar_json(argv):
+            # El prompt de confirmacion se imprime a stderr: se cierra la
+            # linea para que el terminal no quede con basura a medias.
+            print(file=sys.stderr)
+        else:
+            # Mensaje corto y honesto: no se afirma nada del disco porque
+            # la senal puede llegar tambien entre un movimiento y otro.
+            print("Cancelado por el usuario (Ctrl+C).")
+        return 130
 
 
 if __name__ == "__main__":

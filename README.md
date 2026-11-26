@@ -191,7 +191,9 @@ solo debe aparecer ante bugs reales. Una carpeta a la que no se puede entrar
 `ErrorDeSistema`, no traceback; con `--recursivo` una subcarpeta ilegible
 solo produce un aviso y la pasada continúa con lo legible. Las banderas de
 ruta (`--salida`, `--reglas`, `--log`, `--logs-dir`) rechazan la cadena
-vacía: una ruta vacía jamás significa «el directorio actual».
+vacía: una ruta vacía jamás significa «el directorio actual». `Ctrl+C`
+durante una confirmación se responde `Cancelado por el usuario (Ctrl+C).`
+con código 130 — nunca con traceback.
 
 La jerarquía vive en `src/organizador/excepciones.py`:
 

@@ -61,7 +61,11 @@ Jerarquia en `excepciones.py`: todo previsible es `OrganizadorError` con
 `codigo_salida` (1 error, 2 mal uso — `AccionNoValida/ErrorDeUso:25`, y el
 especial 130 por cancelacion en `revisar`). `cli.py:main` (352-373) captura
 `OrganizadorError` e imprime solo el mensaje humano: sin traceback, sin
-`sys.exit()` salvaje, codigo coherente. Desde el cierre hay un caso mas de error previsible con clase propia: `ErrorDeSistema`
+`sys.exit()` salvaje, codigo coherente. Y desde el ultimo corte, `Ctrl+C` en cualquier prompt tiene paraguas en `main`
+(`cli.py`, `except KeyboardInterrupt`): mensaje corto, codigo 130, stdout intacto
+en modo JSON — las pruebas van de la inyeccion (`test_interrupcion.py`) al SIGINT
+real por senal del SO sobre un subproceso. Desde el cierre hay un caso mas de
+error previsible con clase propia: `ErrorDeSistema`
 (`excepciones.py`), que `escaneo.py` lanza cuando una carpeta no se puede leer
 (origen, `_revision`, logs...): antes salia como `PermissionError` con traceback; ahora
 es `Error:` humano con codigo 1, y con `--recursivo` una subcarpeta ilegible solo
@@ -134,7 +138,7 @@ inyectan esa unica funcion. Y `explicar --contenido` lo dice honesto:
 
 README: `pip install .` (o `.[pdf]`, `.[docx]`, `.[pdf,docx]`), y
 `PYTHONPATH=src python -m organizador` sin instalar. Releases etiquetadas
-`v1.0`..`v1.4.1` con CHANGELOG, GitHub Releases con sdist+wheel construidos
+`v1.0`..`v1.4.3` con CHANGELOG, GitHub Releases con sdist+wheel construidos
 por CI (no PyPI:
 sin servicios externos, artefactos verificables). CI: matriz Ubuntu
 3.10-3.13 + Windows 3.12/3.13, ruff, mypy (src+tests), secretos, build
@@ -161,13 +165,13 @@ unico destructor reversible de la CLI.
 - "Por que no publicais en PyPI?" — Decision de alcance: artefactos en
   GitHub Releases (instalables con `pip install <whl>`), sin cuentas ni
   servicios. Si algun dia, el job `build` ya esta hecho.
-- "Cuantas lineas de test hay y que no cubren?" — 293 rapidas + 1 lenta,
-  93.37 %. No cubren: defensas de IO imposibles de disparar sin root, la
+- "Cuantas lineas de test hay y que no cubren?" — 305 rapidas + 1 lenta,
+  93.45 %. No cubren: defensas de IO imposibles de disparar sin root, la
   fidelidad de `extract_text` de `pypdf` y la instalacion aislada del extra
   `[docx]` en el sdist (su `lxml` no se puede prestar sin red). Limite
   honesto: auditoria §8 y ADR-007.
 - "El proyecto es tuyo?" — Todo el codigo y su justificacion (7 ADRs) en el
-  historial con PRs #1-#21; las decisiones importantes estan razonadas en
+  historial con PRs #1-#23; las decisiones importantes estan razonadas en
   docs, no magicas.
 
 ## Como ensayar
