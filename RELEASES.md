@@ -18,8 +18,8 @@ verificaciones.
 
 - **Fecha**: 2026-11-26
 - **Tag**: `v1.4.2`
-- **Base técnica**: rama `hardening-escaneo` tras la batería de robustez;
-  el tag apunta al commit de release con esta documentación cerrada.
+- **Base técnica**: PR #22 (commit funcional `dfc5139`); el tag apunta al
+  commit de release con esta documentación cerrada.
 - **Paquete**: `organizador` 2.7.2
 - **Python**: 3.8+ (CI verificada en Ubuntu 3.10–3.13 y Windows 3.12/3.13)
 
