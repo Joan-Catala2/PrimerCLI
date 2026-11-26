@@ -86,6 +86,46 @@ def test_desde_config_devuelve_la_accion_de_cada_nombre():
         assert accion.nombre == nombre
 
 
+def test_accion_nueva_se_despacha_sin_tocar_el_nucleo(monkeypatch, capsys):
+    """Prueba viviente del ADR-002: una accion es una clase + su registro.
+
+    Se define una accion jamas vista por el codigo (`palabras`), se inyecta
+    en una COPIA del diccionario de registro y la fabrica la construye y la
+    ejecuta sin que motor, presentacion ni excepciones hayan cambiado un
+    byte. El registro original queda intacto para los demas candados.
+    """
+
+    class AccionPalabras(Accion):
+        nombre = "palabras"
+
+        def __init__(self, consola, nombres):
+            super().__init__(consola)
+            self.nombres = nombres
+
+        @classmethod
+        def desde_config(cls, args, consola):
+            return cls(consola=consola, nombres=list(args.nombre))
+
+        def ejecutar(self):
+            for nombre in self.nombres:
+                self.consola.linea(str(len(nombre.split())))
+            return 0
+
+    original = dict(Acciones._IMPLEMENTACIONES)
+    ampliadas = dict(original)
+    ampliadas["palabras"] = AccionPalabras
+    monkeypatch.setattr(Acciones, "_IMPLEMENTACIONES", ampliadas)
+
+    accion = Acciones.desde_config(
+        _args(accion="palabras", nombre=["dos palabras aqui"]), _consola()
+    )
+
+    assert isinstance(accion, AccionPalabras)  # la fabrica la construye
+    assert accion.ejecutar() == 0  # y el contrato base se cumple
+    assert "3" in capsys.readouterr().out
+    assert Acciones._IMPLEMENTACIONES is ampliadas  # copia: el original fuera
+
+
 def test_desde_config_con_accion_inventada_falla_al_construir():
     with pytest.raises(AccionNoValida, match="no reconocida"):
         Acciones.desde_config(_args(accion="teletransportar"), _consola())
